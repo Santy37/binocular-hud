@@ -1,0 +1,274 @@
+=========================================================
+  L.I.N.K. HUD — FULL DEPLOYMENT GUIDE
+  Every command you need, in order.
+=========================================================
+
+
+=== PART 1: ON YOUR WINDOWS PC (PowerShell) ===
+
+--- Step 1: Create the GitHub repo ---
+
+  1. Open https://github.com/new in your browser
+  2. Repository name: binocular-hud
+  3. Set it to Private (or Public, your choice)
+  4. Do NOT check "Add a README" or "Add .gitignore"
+  5. Click "Create repository"
+  6. Leave that page open — you'll need the URL it shows
+
+
+--- Step 2: Initialize git and push ---
+
+Run these commands ONE AT A TIME in PowerShell:
+
+  cd C:\Coding_Projects\Senior_Design\binocular-hud
+
+  git init
+
+  git add .
+
+  git commit -m "initial commit"
+
+  git branch -M main
+
+  git remote add origin https://github.com/YOUR_GITHUB_USERNAME/binocular-hud.git
+
+  git push -u origin main
+
+  ^^^ Replace YOUR_GITHUB_USERNAME with your actual GitHub username.
+      Example: https://github.com/santicastro/binocular-hud.git
+
+  When it asks for credentials, a browser window should pop up.
+  Sign into GitHub and authorize.
+
+  If it asks for a password in the terminal instead, you need a
+  Personal Access Token:
+    1. Go to https://github.com/settings/tokens
+    2. Click "Generate new token (classic)"
+    3. Give it a name like "server"
+    4. Check the "repo" checkbox
+    5. Click "Generate token"
+    6. Copy the token and paste it as the password
+
+
+=== PART 2: ON YOUR DEBIAN SERVER ===
+
+--- Step 3: SSH into your server ---
+
+From PowerShell on your Windows PC:
+
+  ssh YOUR_LINUX_USERNAME@YOUR_SERVER_TAILSCALE_IP
+
+  ^^^ Replace YOUR_LINUX_USERNAME with your Linux username
+      Replace YOUR_SERVER_TAILSCALE_IP with the Tailscale IP
+      (find it at https://login.tailscale.com/admin/machines)
+
+  Example: ssh santi@100.64.0.2
+
+  *** EVERYTHING BELOW THIS LINE IS TYPED ON THE SERVER ***
+  *** (inside that SSH session)                          ***
+
+
+--- Step 4: Install Node.js 20 ---
+
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+
+  sudo apt-get install -y nodejs
+
+  node -v
+
+  ^^^ Should print v20.something. If it does, move on.
+
+
+--- Step 5: Install build tools ---
+
+  sudo apt-get install -y build-essential python3 git
+
+  ^^^ build-essential is needed because better-sqlite3 compiles
+      native C code during npm install.
+
+
+--- Step 6: Clone the repo ---
+
+  cd ~
+
+  git clone https://github.com/YOUR_GITHUB_USERNAME/binocular-hud.git
+
+  ^^^ Same URL from Step 2. Replace YOUR_GITHUB_USERNAME.
+
+  cd binocular-hud
+
+  ls
+
+  ^^^ You should see: hud-app  package-lock.json  package.json  server
+
+
+--- Step 7: Install all dependencies ---
+
+  cd ~/binocular-hud
+
+  npm install
+
+  cd ~/binocular-hud/hud-app
+
+  npm install
+
+  cd ~/binocular-hud/server
+
+  npm install
+
+  ^^^ The server npm install may take a minute because it compiles
+      better-sqlite3. You'll see some warnings — that's normal.
+      As long as there's no "ERR!" at the end, you're good.
+
+
+--- Step 8: Build the frontend ---
+
+  cd ~/binocular-hud/hud-app
+
+  npm run build
+
+  ls dist
+
+  ^^^ You should see files like: index.html  assets/  manifest.json
+      If you see those, the build worked.
+
+
+--- Step 9: Create the server .env file ---
+
+  cd ~/binocular-hud/server
+
+  echo 'PORT=4000' > .env
+
+  echo 'CORS_ORIGIN=*' >> .env
+
+  cat .env
+
+  ^^^ Should print:
+      PORT=4000
+      CORS_ORIGIN=*
+
+
+--- Step 10: Test the server ---
+
+  cd ~/binocular-hud/server
+
+  node src/index.js
+
+  ^^^ You should see:
+      Serving frontend from /home/YOUR_USER/binocular-hud/hud-app/dist
+      L.I.N.K. API server listening on port 4000
+
+  *** LEAVE THAT RUNNING. Open a NEW terminal/SSH session. ***
+  *** Then run this in the new session:                     ***
+
+  curl http://localhost:4000/api/health
+
+  ^^^ Should print: {"ok":true,"uptime":...}
+
+  curl http://localhost:4000/
+
+  ^^^ Should print HTML (the frontend index.html)
+
+  *** Go back to the first terminal and press Ctrl+C to stop. ***
+
+
+--- Step 11: Install pm2 (keeps server running forever) ---
+
+  sudo npm install -g pm2
+
+  cd ~/binocular-hud/server
+
+  pm2 start src/index.js --name link-hud
+
+  pm2 status
+
+  ^^^ Should show "link-hud" with status "online"
+
+  pm2 save
+
+  pm2 startup
+
+  ^^^ This prints a command starting with: sudo env PATH=...
+      COPY THAT ENTIRE LINE it prints and PASTE IT BACK and hit Enter.
+      That makes it auto-start when the server reboots.
+
+  pm2 logs link-hud
+
+  ^^^ Shows live logs. Press Ctrl+C to stop watching logs
+      (the server keeps running, you're just exiting the log viewer).
+
+
+--- Step 12: Enable HTTPS with Tailscale Funnel ---
+
+  *** Web Bluetooth ONLY works on HTTPS. This step is required. ***
+
+  First, enable Funnel on your Tailscale account:
+    1. Open https://login.tailscale.com/admin/dns in your browser (on your PC)
+    2. Scroll down and enable "HTTPS Certificates"
+    3. Click Save
+    4. Open https://login.tailscale.com/admin/acls/file in your browser
+    5. In the JSON editor, add this block (put a comma after the previous
+       section if needed):
+
+       "nodeAttrs": [
+         {
+           "target": ["autogroup:member"],
+           "attr": ["funnel"]
+         }
+       ]
+
+    6. Click Save
+
+  Now back on the server (SSH), run:
+
+  sudo tailscale funnel --bg 4000
+
+  ^^^ It will print something like:
+      Available on the internet:
+      https://your-server.tail1234.ts.net/
+
+      WRITE DOWN THAT URL. That's your public address.
+
+  To verify it works:
+
+  sudo tailscale funnel status
+
+  ^^^ Shows what's being served
+
+
+--- Step 13: Open on your phone ---
+
+  1. Open Chrome on your phone
+  2. Type in the https://_____.ts.net URL from Step 12
+  3. The map app should load
+  4. Web Bluetooth will work because it's HTTPS
+
+
+=========================================================
+  CHEAT SHEET — Commands you'll use later
+=========================================================
+
+  Check if server is running:
+    pm2 status
+
+  View logs:
+    pm2 logs link-hud
+
+  Restart server (after code changes):
+    pm2 restart link-hud
+
+  Pull latest code + rebuild:
+    cd ~/binocular-hud
+    git pull
+    cd ~/binocular-hud/hud-app
+    npm run build
+    pm2 restart link-hud
+
+  See your public URL:
+    sudo tailscale funnel status
+
+  Stop the server:
+    pm2 stop link-hud
+
+  Start it again:
+    pm2 start link-hud
