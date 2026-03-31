@@ -91,7 +91,7 @@ From PowerShell on your Windows PC:
 
   cd ~
 
-  git clone https://github.com/YOUR_GITHUB_USERNAME/binocular-hud.git
+  git clone https://github.com/Santy37/binocular-hud.git
 
   ^^^ Same URL from Step 2. Replace YOUR_GITHUB_USERNAME.
 
@@ -248,6 +248,24 @@ From PowerShell on your Windows PC:
   CHEAT SHEET — Commands you'll use later
 =========================================================
 
+  Run the site locally on your laptop (for testing before you push):
+
+    1. Start the backend:
+       cd C:\Coding_Projects\Senior_Design\binocular-hud\server
+       node src/index.js
+
+    2. Open a SECOND PowerShell terminal and start the frontend:
+       cd C:\Coding_Projects\Senior_Design\binocular-hud\hud-app
+       npm run dev
+
+    3. Open http://localhost:5173 in Chrome
+
+    4. When you're done, press Ctrl+C in both terminals to stop them.
+
+  ^^^ The frontend hot-reloads — save a file and the browser
+      updates instantly. No need to restart anything while editing.
+
+
   Check if server is running:
     pm2 status
 
@@ -257,7 +275,13 @@ From PowerShell on your Windows PC:
   Restart server (after code changes):
     pm2 restart link-hud
 
-  Pull latest code + rebuild:
+  Push code changes from your laptop to GitHub:
+    cd C:\Coding_Projects\Senior_Design\binocular-hud
+    git add .
+    git commit -m "describe what you changed"
+    git push
+
+  Pull latest code on the server + rebuild:
     cd ~/binocular-hud
     git pull
     cd ~/binocular-hud/hud-app

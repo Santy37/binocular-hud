@@ -157,7 +157,7 @@ const simulatePing = async () => {
         <option value="streets">Streets</option>
       </select>
 
-      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#ccc" }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#4a7a9b" }}>
         <input
           type="checkbox"
           checked={followBinoc}
@@ -287,7 +287,7 @@ const simulatePing = async () => {
               onClick={() => setSelectedPingId(p.id)}
               style={{
                 cursor: "pointer",
-                outline: selectedPingId === p.id ? "2px solid rgba(43,124,255,0.7)" : "none",
+                outline: selectedPingId === p.id ? "2px solid rgba(94,196,245,0.7)" : "none",
               }}
             >
               <div className="pingRow">

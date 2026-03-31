@@ -12,10 +12,10 @@ const STATE_LABEL: Record<BleConnectionState, string> = {
 };
 
 const STATE_COLOR: Record<BleConnectionState, string> = {
-  disconnected: "rgba(255,255,255,0.5)",
-  connecting: "#f5a623",
-  connected: "#4cd964",
-  error: "#ff3b30",
+  disconnected: "#4a7a9b",
+  connecting: "#fbbf24",
+  connected: "#34d399",
+  error: "#f87171",
 };
 
 interface Props {
@@ -98,7 +98,7 @@ export default function BleStatus({ onTelemetry }: Props) {
     marginRight: 8,
     boxShadow:
       connState === "connected"
-        ? "0 0 6px rgba(76,217,100,0.6)"
+        ? "0 0 6px rgba(52,211,153,0.6)"
         : undefined,
   };
 
@@ -139,10 +139,10 @@ export default function BleStatus({ onTelemetry }: Props) {
                     style={{
                       color:
                         status === "ok"
-                          ? "#4cd964"
+                          ? "#34d399"
                           : status === "degraded"
-                          ? "#f5a623"
-                          : "#ff3b30",
+                          ? "#fbbf24"
+                          : "#f87171",
                     }}
                   >
                     {status}
@@ -154,7 +154,7 @@ export default function BleStatus({ onTelemetry }: Props) {
           {pendingCount > 0 && (
             <div className="telemetryRow">
               <span>Queued</span>
-              <span className="telemetryValue" style={{ color: "#f5a623" }}>
+              <span className="telemetryValue" style={{ color: "#fbbf24" }}>
                 {pendingCount} pin{pendingCount !== 1 ? "s" : ""}
               </span>
             </div>
