@@ -1,4 +1,4 @@
-/* ── BleStatus: connection button + live telemetry badge ──────────── */
+/* ── BleStatus: connection button + fused telemetry panel ─────────── */
 
 import { useEffect, useState } from "react";
 import { bleManager, BleManager, type BleConnectionState } from "../lib/ble";
@@ -18,6 +18,12 @@ const STATE_COLOR: Record<BleConnectionState, string> = {
   error: "#f87171",
 };
 
+const MOD_COLOR: Record<string, string> = {
+  ok: "#34d399",
+  degraded: "#fbbf24",
+  fail: "#f87171",
+};
+
 interface Props {
   onTelemetry?: (t: TelemetrySnapshot) => void;
 }
@@ -26,29 +32,22 @@ export default function BleStatus({ onTelemetry }: Props) {
   const [connState, setConnState] = useState<BleConnectionState>(
     bleManager.state,
   );
-  const [battery, setBattery] = useState<number | null>(null);
-  const [modules, setModules] = useState<ModuleStatus | null>(null);
+  const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
-  const [pendingCount, setPendingCount] = useState(0);
 
-  // Subscribe to BLE events
   useEffect(() => {
     const unsubs: (() => void)[] = [];
 
     unsubs.push(
       bleManager.on("connectionChange", (state) => {
         setConnState(state);
-        if (state === "disconnected") {
-          setBattery(null);
-          setModules(null);
-        }
+        if (state === "disconnected") setTelemetry(null);
       }),
     );
 
     unsubs.push(
       bleManager.on("telemetry", (snap) => {
-        setBattery(snap.battery);
-        setModules(snap.modules);
+        setTelemetry(snap);
         onTelemetry?.(snap);
       }),
     );
@@ -62,22 +61,6 @@ export default function BleStatus({ onTelemetry }: Props) {
 
     return () => unsubs.forEach((u) => u());
   }, [onTelemetry]);
-
-  // Poll pending queue count
-  useEffect(() => {
-    let alive = true;
-    const poll = async () => {
-      const { pendingCount: pc } = await import("../lib/api");
-      const n = await pc();
-      if (alive) setPendingCount(n);
-    };
-    poll();
-    const id = setInterval(poll, 5000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, []);
 
   const isSupported = BleManager.isSupported();
 
@@ -102,6 +85,9 @@ export default function BleStatus({ onTelemetry }: Props) {
         : undefined,
   };
 
+  const t = telemetry;
+  const m = t?.modules;
+
   return (
     <div className="bleStatusBox">
       {/* Connection button */}
@@ -114,56 +100,59 @@ export default function BleStatus({ onTelemetry }: Props) {
         {isSupported ? STATE_LABEL[connState] : "BLE Not Supported"}
       </button>
 
-      {/* Error toast */}
       {lastError && (
         <div className="bleError smallText">{lastError}</div>
       )}
 
-      {/* Live stats when connected */}
+      {/* Fused telemetry + module health */}
       {connState === "connected" && (
         <div className="telemetryBox">
-          <div className="telemetryRow">
-            <span>Battery</span>
-            <span className="telemetryValue">
-              {battery !== null ? `${battery}%` : "--"}
-            </span>
-          </div>
-
-          {modules &&
-            (Object.entries(modules) as [string, string][]).map(
-              ([mod, status]) => (
-                <div className="telemetryRow" key={mod}>
-                  <span>{mod.toUpperCase()}</span>
-                  <span
-                    className="telemetryValue"
-                    style={{
-                      color:
-                        status === "ok"
-                          ? "#34d399"
-                          : status === "degraded"
-                          ? "#fbbf24"
-                          : "#f87171",
-                    }}
-                  >
-                    {status}
-                  </span>
-                </div>
-              ),
-            )}
-
-          {pendingCount > 0 && (
-            <div className="telemetryRow">
-              <span>Queued</span>
-              <span className="telemetryValue" style={{ color: "#fbbf24" }}>
-                {pendingCount} pin{pendingCount !== 1 ? "s" : ""}
-              </span>
+          {/* Module status — pill badges */}
+          {m && (
+            <div className="moduleBadges">
+              {(Object.entries(m) as [string, string][]).map(([mod, status]) => (
+                <span
+                  key={mod}
+                  className="moduleBadge"
+                  style={{
+                    borderColor: MOD_COLOR[status] ?? "#555",
+                    color: MOD_COLOR[status] ?? "#888",
+                  }}
+                >
+                  {mod.toUpperCase()}
+                </span>
+              ))}
             </div>
           )}
+
+          <div className="telemetryRow">
+            <span>Battery</span>
+            <span className="telemetryValue">{t ? `${t.battery}%` : "--"}</span>
+          </div>
+          <div className="telemetryRow">
+            <span>GNSS</span>
+            <span className="telemetryValue">
+              {t ? `${t.gnss.fix.toUpperCase()} · ${t.gnss.sats} sats` : "--"}
+            </span>
+          </div>
+          <div className="telemetryRow">
+            <span>Heading</span>
+            <span className="telemetryValue">{t ? `${t.imu.heading.toFixed(0)}°` : "--"}</span>
+          </div>
+          <div className="telemetryRow">
+            <span>LiDAR</span>
+            <span className="telemetryValue">
+              {t?.lidar.valid ? `${t.lidar.rangeM.toFixed(1)} m` : "--"}
+            </span>
+          </div>
+          <div className="telemetryRow">
+            <span>Baro Alt</span>
+            <span className="telemetryValue">{t ? `${t.baro.altEstM.toFixed(0)} m` : "--"}</span>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-// Re-export for convenience
 export { bleManager, BleManager } from "../lib/ble";

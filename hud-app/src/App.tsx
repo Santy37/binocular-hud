@@ -167,96 +167,33 @@ const simulatePing = async () => {
       {/* BLE connection status + live telemetry */}
       <BleStatus />
 
-      <button onClick={simulatePing} className="primaryBtn">
-        Simulate Ping
-      </button>
-
-      <select
-        value={basemap}
-        onChange={(e) => setBasemap(e.target.value as "streets" | "satellite")}
-        className="select"
-      >
-        <option value="satellite">Satellite</option>
-        <option value="streets">Streets</option>
-      </select>
-
-      <div className="smallText">Pins: {pins.length}</div>
+      <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 220 }}>
+        <select
+          value={basemap}
+          onChange={(e) => setBasemap(e.target.value as "streets" | "satellite")}
+          className="select"
+          style={{ flex: 1 }}
+        >
+          <option value="satellite">Satellite</option>
+          <option value="streets">Streets</option>
+        </select>
+        <button onClick={simulatePing} className="secondaryBtn" style={{ flex: 1, padding: "8px 0" }}>
+          Sim Ping
+        </button>
+      </div>
 
       <div className="smallText">
         {usingEsp32
-          ? `ESP32: ${binocularLoc!.lat.toFixed(6)}, ${binocularLoc!.lon.toFixed(6)} (${binocularLoc!.sats} sats)`
+          ? `ESP32: ${binocularLoc!.lat.toFixed(5)}, ${binocularLoc!.lon.toFixed(5)}`
           : userLoc
-          ? `Phone: ${userLoc.lat.toFixed(6)}, ${userLoc.lon.toFixed(6)} (${Math.round(
-              userLoc.accM ?? 0
-            )}m)`
-          : locErr
-          ? `Location error: ${locErr}`
-          : "Getting location..."}
+          ? `Phone: ${userLoc.lat.toFixed(5)}, ${userLoc.lon.toFixed(5)}`
+          : locErr ?? "Getting location..."}
       </div>
 
-      <button onClick={clearAllPins} className="secondaryBtn">
-        Clear Pins
-      </button>
-
-      <div className="sectionTitle">Binocular Telemetry</div>
-
-      <div className="telemetryBox">
-        <div className="telemetryRow">
-          <span>GNSS Fix</span>
-          <span className="telemetryValue">
-            {latestTelemetry ? latestTelemetry.gnss.fix.toUpperCase() : "--"}
-          </span>
-        </div>
-
-        <div className="telemetryRow">
-          <span>Heading</span>
-          <span className="telemetryValue">
-            {latestTelemetry ? `${latestTelemetry.imu.heading.toFixed(0)}°` : "--"}
-          </span>
-        </div>
-
-        <div className="telemetryRow">
-          <span>LiDAR Range</span>
-          <span className="telemetryValue">
-            {latestTelemetry?.lidar.valid
-              ? `${latestTelemetry.lidar.rangeM.toFixed(1)} m`
-              : pins[0]?.rangeM !== undefined
-              ? `${pins[0].rangeM.toFixed(0)} m`
-              : "--"}
-          </span>
-        </div>
-
-        <div className="telemetryRow">
-          <span>Last Bearing</span>
-          <span className="telemetryValue">
-            {latestTelemetry
-              ? `${latestTelemetry.imu.heading.toFixed(0)}°`
-              : pins[0]?.bearingDeg !== undefined
-              ? `${pins[0].bearingDeg.toFixed(0)}°`
-              : "--"}
-          </span>
-        </div>
-
-        <div className="telemetryRow">
-          <span>Battery</span>
-          <span className="telemetryValue">
-            {latestTelemetry ? `${latestTelemetry.battery}%` : "--%"}
-          </span>
-        </div>
-
-        <div className="telemetryRow">
-          <span>Satellites</span>
-          <span className="telemetryValue">
-            {latestTelemetry ? latestTelemetry.gnss.sats : "--"}
-          </span>
-        </div>
-
-        <div className="telemetryRow">
-          <span>Baro Alt</span>
-          <span className="telemetryValue">
-            {latestTelemetry ? `${latestTelemetry.baro.altEstM.toFixed(0)} m` : "--"}
-          </span>
-        </div>
+      <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 220 }}>
+        <button onClick={clearAllPins} className="secondaryBtn" style={{ flex: 1 }}>
+          Clear Pins ({pins.length})
+        </button>
       </div>
 
       {/* Offline queue indicator */}
