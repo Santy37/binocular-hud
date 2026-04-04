@@ -5,7 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 type Pin = { id: string; lat: number; lon: number; label?: string };
 type Basemap = "streets" | "satellite";
 type UserLoc = { lat: number; lon: number; accM?: number };
-type BinocLoc = { lat: number; lon: number; sats: number; fix: string };
+type LocSource = "esp32" | "phone";
 
 function circlePolygon(lon: number, lat: number, radiusM: number, points = 64) {
   const coords: [number, number][] = [];
@@ -54,22 +54,20 @@ export default function MapView({
   userLoc,
   centerMeTick,
   selectedPingId,
-  binocularLoc,
-  followBinoculars,
+  locSource,
 }: {
   pins: Pin[];
   basemap: Basemap;
   userLoc: UserLoc | null;
   centerMeTick: number;
   selectedPingId: string | null;
-  binocularLoc: BinocLoc | null;
-  followBinoculars: boolean;
+  locSource: LocSource;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<Map | null>(null);
   const markersRef = useRef<Marker[]>([]);
   const userMarkerRef = useRef<Marker | null>(null);
-  const binocMarkerRef = useRef<Marker | null>(null);
+  const lastLocSourceRef = useRef<LocSource>(locSource);
   const didInitUserCenterRef = useRef(false);
   const prevPinsLenRef = useRef(0);
   const didPinsInitRef = useRef(false);
@@ -112,17 +110,17 @@ export default function MapView({
     map.addControl(new maplibregl.NavigationControl(), "top-right");
 
     map.on("load", () => {
-      // Add accuracy circle source/layers once
-      if (!map.getSource("user-acc")) {
-        map.addSource("user-acc", {
+      // Accuracy circle source/layers (color set dynamically)
+      if (!map.getSource("loc-acc")) {
+        map.addSource("loc-acc", {
           type: "geojson",
           data: { type: "FeatureCollection", features: [] },
         });
 
         map.addLayer({
-          id: "user-acc-fill",
+          id: "loc-acc-fill",
           type: "fill",
-          source: "user-acc",
+          source: "loc-acc",
           paint: {
             "fill-color": "#2b7cff",
             "fill-opacity": 0.15,
@@ -130,9 +128,9 @@ export default function MapView({
         });
 
         map.addLayer({
-          id: "user-acc-outline",
+          id: "loc-acc-outline",
           type: "line",
-          source: "user-acc",
+          source: "loc-acc",
           paint: {
             "line-color": "#2b7cff",
             "line-width": 2,
@@ -151,13 +149,8 @@ export default function MapView({
       markersRef.current = [];
 
       if (userMarkerRef.current) {
-      userMarkerRef.current.remove();
-      userMarkerRef.current = null;
-      }
-
-      if (binocMarkerRef.current) {
-        binocMarkerRef.current.remove();
-        binocMarkerRef.current = null;
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
       }
 
       map.remove();
@@ -207,24 +200,35 @@ export default function MapView({
     });
   }, [selectedPingId, pins]);
 
-  // update user location marker
+  // Single location marker — blue for ESP32, green for phone GPS
+  const ESP32_COLOR = "#2b7cff";
+  const PHONE_COLOR = "#22c55e";
+
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !userLoc) return;
 
-    if (!userLoc) return;
-
+    const color = locSource === "esp32" ? ESP32_COLOR : PHONE_COLOR;
+    const glowColor = locSource === "esp32"
+      ? "rgba(43,124,255,0.6)"
+      : "rgba(34,197,94,0.6)";
     const lngLat: [number, number] = [userLoc.lon, userLoc.lat];
 
+    // If source changed, destroy old marker so we rebuild with the right color
+    if (lastLocSourceRef.current !== locSource && userMarkerRef.current) {
+      userMarkerRef.current.remove();
+      userMarkerRef.current = null;
+    }
+    lastLocSourceRef.current = locSource;
+
     if (!userMarkerRef.current) {
-      // Create a blue dot element
       const el = document.createElement("div");
-      el.style.width = "14px";
-      el.style.height = "14px";
+      el.style.width = "16px";
+      el.style.height = "16px";
       el.style.borderRadius = "50%";
-      el.style.background = "#2b7cff";
+      el.style.background = color;
       el.style.border = "2px solid white";
-      el.style.boxShadow = "0 0 10px rgba(43,124,255,0.6)";
+      el.style.boxShadow = `0 0 10px ${glowColor}`;
 
       userMarkerRef.current = new maplibregl.Marker({ element: el })
         .setLngLat(lngLat)
@@ -233,45 +237,20 @@ export default function MapView({
       userMarkerRef.current.setLngLat(lngLat);
     }
 
-    // Update accuracy circle
-    const acc = Math.max(10, Math.min(userLoc.accM ?? 0, 500)); // clamp 10..500m for sanity
+    // Update accuracy circle + color
+    const acc = Math.max(3, Math.min(userLoc.accM ?? 50, 500));
     const fc = circlePolygon(userLoc.lon, userLoc.lat, acc);
 
-    const src = map.getSource("user-acc") as maplibregl.GeoJSONSource | undefined;
+    const src = map.getSource("loc-acc") as maplibregl.GeoJSONSource | undefined;
     src?.setData(fc as any);
-  }, [userLoc]);
 
-  // update binocular (ESP32) location marker — green dot
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !binocularLoc) return;
-
-    const lngLat: [number, number] = [binocularLoc.lon, binocularLoc.lat];
-
-    if (!binocMarkerRef.current) {
-      const el = document.createElement("div");
-      el.style.width = "16px";
-      el.style.height = "16px";
-      el.style.borderRadius = "50%";
-      el.style.background = "#22c55e";
-      el.style.border = "2px solid white";
-      el.style.boxShadow = "0 0 10px rgba(34,197,94,0.6)";
-
-      binocMarkerRef.current = new maplibregl.Marker({ element: el })
-        .setLngLat(lngLat)
-        .addTo(map);
-    } else {
-      binocMarkerRef.current.setLngLat(lngLat);
+    if (map.getLayer("loc-acc-fill")) {
+      map.setPaintProperty("loc-acc-fill", "fill-color", color);
     }
-
-    // Follow binoculars if enabled
-    if (followBinoculars) {
-      map.easeTo({
-        center: lngLat,
-        duration: 600,
-      });
+    if (map.getLayer("loc-acc-outline")) {
+      map.setPaintProperty("loc-acc-outline", "line-color", color);
     }
-  }, [binocularLoc, followBinoculars]);
+  }, [userLoc, locSource]);
 
   // toggle basemap
   useEffect(() => {

@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import MapView from "./components/MapView";
 import BleStatus from "./components/BleStatus";
+import { bleManager } from "./lib/ble";
+import type { BleConnectionState } from "./lib/ble";
 import { destinationPoint } from "./lib/geo";
 import { haversineMeters, fmtDist } from "./lib/distance";
 import { useBlePipeline } from "./hooks/useBlePipeline";
@@ -20,6 +22,8 @@ export default function App() {
   type UserLoc = { lat: number; lon: number; accM?: number };
 
   const [userLoc, setUserLoc] = useState<UserLoc | null>(null);
+  const [deviceLoc, setDeviceLoc] = useState<UserLoc | null>(null);
+  const [bleConnected, setBleConnected] = useState(false);
   const [locErr, setLocErr] = useState<string | null>(null);
   const [centerMeTick, setCenterMeTick] = useState(0);
   const [selectedPingId, setSelectedPingId] = useState<string | null>(null);
@@ -41,10 +45,30 @@ export default function App() {
         lon: latestTelemetry.gnss.lon,
         sats: latestTelemetry.gnss.sats,
         fix: latestTelemetry.gnss.fix,
+        accM: latestTelemetry.gnss.accM,
       }
     : null;
 
-  const [followBinoc, setFollowBinoc] = useState(true);
+  // Whether ESP32 GPS is the active location source
+  const usingEsp32 = bleConnected && binocularLoc != null;
+
+  // Track BLE connection state
+  useEffect(() => {
+    const unsub = bleManager.on("connectionChange", (state: BleConnectionState) => {
+      setBleConnected(state === "connected");
+    });
+    return unsub;
+  }, []);
+
+  // When ESP32 has a GPS fix, use it as primary (blue dot).
+  // Otherwise fall back to phone GPS (green dot).
+  useEffect(() => {
+    if (usingEsp32) {
+      setUserLoc({ lat: binocularLoc!.lat, lon: binocularLoc!.lon, accM: binocularLoc!.accM });
+    } else if (deviceLoc) {
+      setUserLoc(deviceLoc);
+    }
+  }, [usingEsp32, binocularLoc, deviceLoc]);
 
   // 1) LOAD pins on startup
   useEffect(() => {
@@ -53,7 +77,7 @@ export default function App() {
       .catch(console.error);
   }, []);
 
-  // 2) WATCH user's GPS location
+  // 2) WATCH device GPS location (always runs, stored separately)
   useEffect(() => {
     if (!("geolocation" in navigator)) {
       setLocErr("Geolocation not supported in this browser.");
@@ -62,7 +86,7 @@ export default function App() {
 
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        setUserLoc({
+        setDeviceLoc({
           lat: pos.coords.latitude,
           lon: pos.coords.longitude,
           accM: pos.coords.accuracy,
@@ -74,7 +98,7 @@ export default function App() {
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 0,     // don't reuse cached positions
+        maximumAge: 0,
         timeout: 15000,
       }
     );
@@ -131,8 +155,7 @@ const simulatePing = async () => {
         userLoc={userLoc}
         centerMeTick={centerMeTick}
         selectedPingId={selectedPingId}
-        binocularLoc={binocularLoc}
-        followBinoculars={followBinoc}
+        locSource={usingEsp32 ? "esp32" : "phone"}
       />
     </div>
 
@@ -157,20 +180,13 @@ const simulatePing = async () => {
         <option value="streets">Streets</option>
       </select>
 
-      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#4a7a9b" }}>
-        <input
-          type="checkbox"
-          checked={followBinoc}
-          onChange={(e) => setFollowBinoc(e.target.checked)}
-        />
-        Follow Binoculars {binocularLoc ? "(GPS fix)" : "(no fix)"}
-      </label>
-
       <div className="smallText">Pins: {pins.length}</div>
 
       <div className="smallText">
-        {userLoc
-          ? `You: ${userLoc.lat.toFixed(6)}, ${userLoc.lon.toFixed(6)} (${Math.round(
+        {usingEsp32
+          ? `ESP32: ${binocularLoc!.lat.toFixed(6)}, ${binocularLoc!.lon.toFixed(6)} (${binocularLoc!.sats} sats)`
+          : userLoc
+          ? `Phone: ${userLoc.lat.toFixed(6)}, ${userLoc.lon.toFixed(6)} (${Math.round(
               userLoc.accM ?? 0
             )}m)`
           : locErr
