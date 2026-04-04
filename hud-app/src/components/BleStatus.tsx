@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { bleManager, BleManager, type BleConnectionState } from "../lib/ble";
-import type { TelemetrySnapshot, ModuleStatus } from "../lib/payloadTypes";
+import type { TelemetrySnapshot } from "../lib/payloadTypes";
 
 const STATE_LABEL: Record<BleConnectionState, string> = {
   disconnected: "Connect ESP32",
