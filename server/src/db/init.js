@@ -1,4 +1,4 @@
-/* ── Database initialisation — run once with: npm run db:init ────── */
+// Database initialisation — run once with: npm run db:init
 import pool from "./pool.js";
 
 const SQL = `

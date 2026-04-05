@@ -60,8 +60,9 @@ export default function App() {
     return unsub;
   }, []);
 
-  // When ESP32 has a GPS fix, use it as primary (blue dot).
-  // Otherwise fall back to phone GPS (green dot).
+  /* When ESP32 has a GPS fix, use it as primary (blue dot).
+   * Otherwise fall back to phone GPS (green dot).
+   */
   useEffect(() => {
     if (usingEsp32) {
       setUserLoc({ lat: binocularLoc!.lat, lon: binocularLoc!.lon, accM: binocularLoc!.accM });

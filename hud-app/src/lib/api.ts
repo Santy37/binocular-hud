@@ -1,4 +1,4 @@
-/* ── HTTP API service — POST pins to the server endpoint ─────────── */
+// HTTP API service — POST pins to the server endpoint
 
 import type { PinPayload, ServerPinResponse } from "./payloadTypes";
 import { validatePinPayload } from "./payloadTypes";
@@ -21,7 +21,7 @@ const SERVER_BASE =
 
 const PIN_ENDPOINT = `${SERVER_BASE}/api/pins`;
 
-/* ── Public API ──────────────────────────────────────────────────── */
+// Public API
 
 /**
  * Full pipeline for a pin payload that arrived over BLE:
@@ -70,7 +70,7 @@ export async function pendingCount(): Promise<number> {
   return (await getPending()).length;
 }
 
-/* ── Internals ───────────────────────────────────────────────────── */
+// Internals
 
 async function attemptPost(payload: PinPayload): Promise<boolean> {
   try {
@@ -116,7 +116,7 @@ async function attemptPost(payload: PinPayload): Promise<boolean> {
   }
 }
 
-/* ── Auto-flush on connectivity changes ──────────────────────────── */
+// Auto-flush on connectivity changes
 
 if (typeof window !== "undefined") {
   window.addEventListener("online", () => {

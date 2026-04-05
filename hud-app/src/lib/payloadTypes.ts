@@ -1,18 +1,18 @@
-/* ── Shared types for ESP32 ↔ Phone ↔ Server payloads ─────────────── */
+// Shared types for ESP32 ↔ Phone ↔ Server payloads
 
 /** Raw telemetry snapshot the ESP32 streams via BLE notify. */
 export interface TelemetrySnapshot {
   /** ISO-8601 timestamp on the ESP32 (may drift — phone re-stamps). */
   ts: string;
 
-  /* ── IMU ──────────────────────────────────────────── */
+  // IMU
   imu: {
     heading: number;   // degrees true-north
     pitch: number;     // degrees
     roll: number;      // degrees
   };
 
-  /* ── GNSS ─────────────────────────────────────────── */
+  // GNSS
   gnss: {
     lat: number;
     lon: number;
@@ -22,21 +22,21 @@ export interface TelemetrySnapshot {
     sats: number;
   };
 
-  /* ── Barometer ────────────────────────────────────── */
+  // Barometer
   baro: {
     pressHPa: number;
     tempC: number;
     altEstM: number;   // barometric altitude estimate
   };
 
-  /* ── LiDAR ────────────────────────────────────────── */
+  // LiDAR
   lidar: {
     rangeM: number;    // measured distance
     quality: number;   // signal quality 0-255
     valid: boolean;
   };
 
-  /* ── Device health ────────────────────────────────── */
+  // Device health
   battery: number;     // 0-100 %
   modules: ModuleStatus;
 }
@@ -91,7 +91,7 @@ export interface PinPayload {
   telemetry: TelemetrySnapshot;
 }
 
-/* ── Server response ─────────────────────────────────────────────── */
+// Server response
 
 export interface ServerPinResponse {
   ok: boolean;
@@ -99,7 +99,7 @@ export interface ServerPinResponse {
   error?: string;
 }
 
-/* ── Payload validation ──────────────────────────────────────────── */
+// Payload validation
 
 /** Quick client-side bounds check before POSTing. */
 export function validatePinPayload(p: PinPayload): string[] {

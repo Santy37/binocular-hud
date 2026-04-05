@@ -1,4 +1,4 @@
-/* ── Pin routes — POST /api/pins + GET /api/pins ────────────────── */
+// Pin routes — POST /api/pins + GET /api/pins
 import { Router } from "express";
 import db from "../db/pool.js";
 
@@ -25,7 +25,7 @@ const selectPins = db.prepare(`
   SELECT * FROM pins ORDER BY created_at DESC LIMIT 100
 `);
 
-/* ── POST /api/pins — receive a pin from the phone PWA ─────────── */
+// POST /api/pins — receive a pin from the phone PWA
 router.post("/", (req, res) => {
   try {
     const p = req.body;
@@ -68,7 +68,7 @@ router.post("/", (req, res) => {
   }
 });
 
-/* ── GET /api/pins — retrieve stored waypoints (newest first) ──── */
+// GET /api/pins — retrieve stored waypoints (newest first)
 router.get("/", (_req, res) => {
   try {
     const rows = selectPins.all();

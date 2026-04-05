@@ -1,4 +1,4 @@
-/* ── BleStatus: connection button + fused telemetry panel ─────────── */
+// BleStatus: connection button + fused telemetry panel
 
 import { useEffect, useState } from "react";
 import { bleManager, BleManager, type BleConnectionState } from "../lib/ble";

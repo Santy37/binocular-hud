@@ -1,4 +1,4 @@
-/* ── Push / local notification helpers ────────────────────────────── */
+// Push / local notification helpers
 
 /**
  * Request Notification permission if not already granted.

@@ -1,4 +1,4 @@
-/* ── IndexedDB-backed offline queue for unsent pin payloads ───────── */
+// IndexedDB-backed offline queue for unsent pin payloads
 
 import { openDB, type IDBPDatabase } from "idb";
 import type { PinPayload } from "./payloadTypes";

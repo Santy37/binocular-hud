@@ -1,4 +1,4 @@
-/* ── useBlePipeline: orchestrates BLE → Queue → API → ACK → UI ─── */
+// useBlePipeline: orchestrates BLE → Queue → API → ACK → UI
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { bleManager } from "../lib/ble";

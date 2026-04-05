@@ -1,8 +1,8 @@
-/* ── Web Bluetooth BLE manager for ESP32 GATT connection ─────────── */
+// Web Bluetooth BLE manager for ESP32 GATT connection
 
 import type { PinPayload, TelemetrySnapshot } from "./payloadTypes";
 
-// ── Custom 128-bit UUIDs (must match ESP32 firmware) ───────────────
+// Custom 128-bit UUIDs (must match ESP32 firmware)
 const SERVICE_UUID        = "4c494e4b-4855-4400-b000-000000000000"; // "LINK-HUD"
 const TELEMETRY_CHAR_UUID = "4c494e4b-4855-4400-b000-000000000001"; // notify
 const PIN_CHAR_UUID       = "4c494e4b-4855-4400-b000-000000000002"; // notify
@@ -41,7 +41,7 @@ export class BleManager {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private listeners: { [K in keyof BleEventMap]?: Set<Listener<K>> } = {};
 
-  /* ── Public API ────────────────────────────────── */
+  // Public API
 
   get state() {
     return this._state;
@@ -122,7 +122,7 @@ export class BleManager {
     await this.ackChar.writeValue(data);
   }
 
-  /* ── Event emitter ─────────────────────────────── */
+  // Event emitter
 
   on<K extends keyof BleEventMap>(event: K, fn: Listener<K>): () => void {
     if (!this.listeners[event]) {
@@ -139,7 +139,7 @@ export class BleManager {
     this.listeners[event]?.forEach((fn) => fn(data));
   }
 
-  /* ── Internal handlers ─────────────────────────── */
+  // Internal handlers
 
   private setState(s: BleConnectionState) {
     this._state = s;

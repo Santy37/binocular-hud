@@ -277,7 +277,7 @@
   z-index: 11;
 }
 
-/* ── BLE Status ──────────────────────────────────────── */
+/* BLE Status */
 .bleStatusBox {
   width: 100%;
   display: flex;
@@ -291,18 +291,18 @@
   text-align: center;
 }
 
-/* ── Offline queue retry button styling ─────────────── */
+/* Offline queue retry button styling */
 .queueRetryBtn {
   font-size: 12px;
   color: var(--sheikah-warn);
 }
 
-/* ── Module status badges ───────────────────────────── */
+/* Module status badges */
 .moduleOk    { color: var(--sheikah-ok); }
 .moduleDeg   { color: var(--sheikah-warn); }
 .moduleFail  { color: var(--sheikah-err); }
 
-/* ── Responsive: collapse panels on small screens ───── */
+/* Responsive: collapse panels on small screens */
 @media (max-width: 700px) {
   .leftCluster {
     flex-direction: column;

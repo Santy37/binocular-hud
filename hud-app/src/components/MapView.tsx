@@ -288,7 +288,7 @@ export default function MapView({
     if (!didPinsInitRef.current) {
       didPinsInitRef.current = true;
       prevPinsLenRef.current = pins.length;
-      return; // ✅ don't fly on initial load
+      return; // don't fly on initial load
     }
 
     if (pins.length > prevPinsLenRef.current && pins.length > 0) {

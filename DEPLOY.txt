@@ -289,7 +289,7 @@ From PowerShell on your Windows PC:
     pm2 restart link-hud
 
   See your public URL:
-    sudo tailscale funnel status
+      sudo tailscale funnel status
 
   Stop the server:
     pm2 stop link-hud
