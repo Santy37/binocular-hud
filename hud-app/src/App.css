@@ -302,11 +302,21 @@
 .moduleDeg   { color: var(--sheikah-warn); }
 .moduleFail  { color: var(--sheikah-err); }
 
-/* Responsive: collapse panels on small screens */
+/* Responsive: stack panels vertically on phones */
 @media (max-width: 700px) {
+  .appRoot {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .leftCluster {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
+    padding: 10px;
     flex-direction: column;
-    right: 20px;
+    align-items: stretch;
     gap: 8px;
   }
 
@@ -315,13 +325,17 @@
     max-width: none;
   }
 
+  .centerBtn {
+    align-self: center;
+  }
+
   .pingCard {
     position: relative;
     top: auto;
     right: auto;
-    width: 100%;
+    width: auto;
     max-width: none;
-    margin-top: 8px;
-    max-height: 40vh;
+    margin: 0 10px 10px;
+    max-height: none;
   }
 }
