@@ -6,6 +6,7 @@ import type { BleConnectionState } from "./lib/ble";
 import { destinationPoint } from "./lib/geo";
 import { haversineMeters, fmtDist } from "./lib/distance";
 import { useBlePipeline } from "./hooks/useBlePipeline";
+import { useBottomSheet } from "./hooks/useBottomSheet";
 import "./App.css";
 import {
   getAllPins,
@@ -36,6 +37,8 @@ export default function App() {
   const { latestTelemetry, queueSize, manualFlush } = useBlePipeline({
     onNewPin: handleBlePin,
   });
+
+  const { sheetRef, handleRef, heightPx, isMobile } = useBottomSheet();
 
   // Derive binocular location from BLE telemetry GNSS
   const binocularLoc = latestTelemetry &&
@@ -222,7 +225,16 @@ const simulatePing = async () => {
       </button>
     </div>
 
-    <div className="pingCard">
+    <div
+      className={`pingCard${isMobile ? " pingCard--sheet" : ""}`}
+      ref={sheetRef}
+      style={heightPx ? { height: heightPx } : undefined}
+    >
+      {/* Drag handle — visible only on mobile via CSS */}
+      <div className="sheetHandle" ref={handleRef}>
+        <div className="sheetHandleBar" />
+      </div>
+
       <div className="sectionTitle" style={{ textAlign: "center" }}>
         Recent Pings
       </div>
