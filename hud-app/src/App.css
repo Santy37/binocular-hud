@@ -314,94 +314,145 @@
   background: rgba(94, 196, 245, 0.4);
 }
 
-/* ── Mobile bottom sheet ─────────────────────────────── */
+/* ── Mobile Find-My style sheet + tab bar ────────────── */
+
+/* Desktop: hide mobile elements */
+.mobile-center-btn { display: none; }
+.msheet { display: none; }
+
 @media (max-width: 700px) {
   .appRoot {
     overflow: hidden;
   }
 
-  /* ── Centered top tab ── */
-  .leftCluster {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    padding: 0;
+  /* Hide desktop panels */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Show mobile elements */
+  .msheet {
+    display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0;
-    z-index: 11;
-  }
-
-  .controlCard {
-    width: 100%;
-    max-width: none;
-    padding: 12px 16px 10px;
-    gap: 6px;
-    border-radius: 0 0 18px 18px;
-    border-top: none;
-  }
-
-  .controlCard .title {
-    font-size: 17px;
-    letter-spacing: 1.5px;
-    margin-bottom: 0;
-  }
-
-  .controlCard .primaryBtn,
-  .controlCard .secondaryBtn,
-  .controlCard .select {
-    padding: 8px 10px;
-    font-size: 13px;
-  }
-
-  .controlCard .smallText {
-    font-size: 11px;
-  }
-
-  .controlCard .telemetryBox {
-    max-width: none;
-  }
-
-  .centerBtn {
     position: fixed;
-    top: auto;
-    bottom: 70px;
-    right: 12px;
-    z-index: 15;
-  }
-
-  /* ── Bottom sheet ── */
-  .pingCard--sheet {
-    position: fixed;
-    top: auto;
     bottom: 0;
     left: 0;
     right: 0;
-    width: 100%;
-    max-width: none;
-    max-height: 85vh;
-
-    border-radius: 18px 18px 0 0;
-    transition: height 0.3s ease;
-    padding: 6px 14px 14px;
-
     z-index: 20;
+    pointer-events: auto;
   }
 
-  .pingCard--sheet .pingList {
-    max-height: none;
-    flex: 1;
-    overflow-y: auto;
-  }
-
-  /* Show the drag handle on mobile */
-  .pingCard--sheet .sheetHandle {
+  /* Drag handle area */
+  .msheet-handle {
     display: flex;
     justify-content: center;
-    padding: 8px 0 4px;
+    padding: 10px 0 6px;
     cursor: grab;
     touch-action: none;
+    background: var(--sheikah-panel);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 16px 16px 0 0;
+    border: 1px solid rgba(42, 138, 240, 0.25);
+    border-bottom: none;
+  }
+
+  .msheet-handle-bar {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(94, 196, 245, 0.4);
+  }
+
+  /* Scrollable content area */
+  .msheet-content {
+    height: var(--sheet-content-h, 42vh);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 6px 16px 10px;
+    transition: height 0.3s ease;
+
+    background: var(--sheikah-panel);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    border-left: 1px solid rgba(42, 138, 240, 0.25);
+    border-right: 1px solid rgba(42, 138, 240, 0.25);
+  }
+
+  /* Tab bar — always visible at bottom */
+  .msheet-tabs {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 6px 0 env(safe-area-inset-bottom, 8px);
+
+    background: rgba(8, 18, 35, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    border-top: 1px solid rgba(42, 138, 240, 0.2);
+  }
+
+  .msheet-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 12px;
+
+    background: none;
+    border: none;
+    color: var(--sheikah-dim);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .msheet-tab--active {
+    color: var(--sheikah-glow);
+  }
+
+  .msheet-tab svg {
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+  .msheet-tab--active svg {
+    opacity: 1;
+  }
+
+  /* Center-me FAB */
+  .mobile-center-btn {
+    display: grid;
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 8px) + 56px + 42vh + 12px);
+    right: 12px;
+    z-index: 15;
+    transition: bottom 0.3s ease;
+  }
+
+  /* Tweak control card items for mobile sheet context */
+  .msheet-content .primaryBtn,
+  .msheet-content .secondaryBtn,
+  .msheet-content .select {
+    max-width: none;
+  }
+
+  .msheet-content .telemetryBox {
+    max-width: none;
+  }
+
+  .msheet-content .bleStatusBox {
+    padding: 4px 0;
+  }
+
+  .msheet-content .sectionTitle {
+    max-width: none;
+  }
+
+  .msheet-content .pingList {
+    max-height: none;
   }
 }

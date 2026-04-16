@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import MapView from "./components/MapView";
 import BleStatus from "./components/BleStatus";
+import MobileSheet, { type TabId } from "./components/MobileSheet";
 import { bleManager } from "./lib/ble";
 import type { BleConnectionState } from "./lib/ble";
 import { destinationPoint } from "./lib/geo";
 import { haversineMeters, fmtDist } from "./lib/distance";
 import { useBlePipeline } from "./hooks/useBlePipeline";
-import { useBottomSheet } from "./hooks/useBottomSheet";
 import "./App.css";
 import {
   getAllPins,
@@ -38,7 +38,14 @@ export default function App() {
     onNewPin: handleBlePin,
   });
 
-  const { sheetRef, handleRef, heightPx, isMobile } = useBottomSheet();
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth <= 700);
+  const [mobileTab, setMobileTab] = useState<TabId>("pings");
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 700);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // Derive binocular location from BLE telemetry GNSS
   const binocularLoc = latestTelemetry &&
@@ -149,9 +156,91 @@ const simulatePing = async () => {
 };
 
 
+  /* ── Shared UI fragments ── */
+  const locationText = usingEsp32
+    ? `ESP32: ${binocularLoc!.lat.toFixed(5)}, ${binocularLoc!.lon.toFixed(5)}`
+    : userLoc
+    ? `Phone: ${userLoc.lat.toFixed(5)}, ${userLoc.lon.toFixed(5)}`
+    : locErr ?? "Getting location...";
+
+  const pingListJsx = (
+    <div className="pingList">
+      {pins.length === 0 && <div className="smallText">No pings yet.</div>}
+      {pins.map((p, idx) => {
+        const dist = userLoc ? haversineMeters(userLoc.lat, userLoc.lon, p.lat, p.lon) : null;
+        return (
+          <div
+            key={p.id}
+            className="pingItem"
+            onClick={() => setSelectedPingId(p.id)}
+            style={{
+              cursor: "pointer",
+              outline: selectedPingId === p.id ? "2px solid rgba(94,196,245,0.7)" : "none",
+            }}
+          >
+            <div className="pingRow">
+              <div className="pingName">#{idx + 1} {p.label ?? "Ping"}</div>
+              <div className="pingDist">{dist !== null ? fmtDist(dist) : "--"}</div>
+            </div>
+            <div className="pingMeta">({p.lat.toFixed(5)}, {p.lon.toFixed(5)})</div>
+            <div className="pingMeta">
+              {p.bearingDeg !== undefined && p.rangeM !== undefined
+                ? `Bearing ${p.bearingDeg.toFixed(0)}° • Range ${p.rangeM.toFixed(0)}m`
+                : "—"}
+            </div>
+            <div className="pingMeta">{new Date(p.createdAt).toLocaleTimeString()}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  /* ── Mobile tab content ── */
+  const mobileTabContent = () => {
+    switch (mobileTab) {
+      case "pings":
+        return (
+          <>
+            <div className="sectionTitle" style={{ textAlign: "center" }}>Recent Pings</div>
+            {pingListJsx}
+          </>
+        );
+      case "esp32":
+        return <BleStatus />;
+      case "controls":
+        return (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "4px 0" }}>
+            <div className="smallText">{locationText}</div>
+            <div style={{ display: "flex", gap: 8, width: "100%" }}>
+              <select
+                value={basemap}
+                onChange={(e) => setBasemap(e.target.value as "streets" | "satellite")}
+                className="select"
+                style={{ flex: 1 }}
+              >
+                <option value="satellite">Satellite</option>
+                <option value="streets">Streets</option>
+              </select>
+              <button onClick={simulatePing} className="secondaryBtn" style={{ flex: 1, padding: "8px 0" }}>
+                Sim Ping
+              </button>
+            </div>
+            <button onClick={clearAllPins} className="secondaryBtn" style={{ width: "100%" }}>
+              Clear Pins ({pins.length})
+            </button>
+            {queueSize > 0 && (
+              <button onClick={manualFlush} className="secondaryBtn" style={{ fontSize: 12, width: "100%" }}>
+                {queueSize} unsent pin{queueSize !== 1 ? "s" : ""} — tap to retry
+              </button>
+            )}
+          </div>
+        );
+    }
+  };
+
   return (
   <div className="appRoot">
-    {/* Full-screen map behind everything */}
+    {/* Full-screen map */}
     <div className="mapLayer">
       <MapView
         pins={pins}
@@ -163,122 +252,71 @@ const simulatePing = async () => {
       />
     </div>
 
-    {/* Left cluster: control card + center button */}
-    <div className="leftCluster">
+    {/* ── Desktop layout (hidden on mobile via CSS) ── */}
+    <div className="leftCluster desktop-only">
       <div className="controlCard">
         <div className="title">LINK Map</div>
-
-      {/* BLE connection status + live telemetry */}
-      <BleStatus />
-
-      <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 220 }}>
-        <select
-          value={basemap}
-          onChange={(e) => setBasemap(e.target.value as "streets" | "satellite")}
-          className="select"
-          style={{ flex: 1 }}
-        >
-          <option value="satellite">Satellite</option>
-          <option value="streets">Streets</option>
-        </select>
-        <button onClick={simulatePing} className="secondaryBtn" style={{ flex: 1, padding: "8px 0" }}>
-          Sim Ping
-        </button>
+        <BleStatus />
+        <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 220 }}>
+          <select
+            value={basemap}
+            onChange={(e) => setBasemap(e.target.value as "streets" | "satellite")}
+            className="select"
+            style={{ flex: 1 }}
+          >
+            <option value="satellite">Satellite</option>
+            <option value="streets">Streets</option>
+          </select>
+          <button onClick={simulatePing} className="secondaryBtn" style={{ flex: 1, padding: "8px 0" }}>
+            Sim Ping
+          </button>
+        </div>
+        <div className="smallText">{locationText}</div>
+        <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 220 }}>
+          <button onClick={clearAllPins} className="secondaryBtn" style={{ flex: 1 }}>
+            Clear Pins ({pins.length})
+          </button>
+        </div>
+        {queueSize > 0 && (
+          <button onClick={manualFlush} className="secondaryBtn" style={{ fontSize: 12 }}>
+            {queueSize} unsent pin{queueSize !== 1 ? "s" : ""} — tap to retry
+          </button>
+        )}
       </div>
-
-      <div className="smallText">
-        {usingEsp32
-          ? `ESP32: ${binocularLoc!.lat.toFixed(5)}, ${binocularLoc!.lon.toFixed(5)}`
-          : userLoc
-          ? `Phone: ${userLoc.lat.toFixed(5)}, ${userLoc.lon.toFixed(5)}`
-          : locErr ?? "Getting location..."}
-      </div>
-
-      <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 220 }}>
-        <button onClick={clearAllPins} className="secondaryBtn" style={{ flex: 1 }}>
-          Clear Pins ({pins.length})
-        </button>
-      </div>
-
-      {/* Offline queue indicator */}
-      {queueSize > 0 && (
-        <button onClick={manualFlush} className="secondaryBtn" style={{ fontSize: 12 }}>
-          {queueSize} unsent pin{queueSize !== 1 ? "s" : ""} — tap to retry
-        </button>
-      )}
-    </div>
-
       <button
         className="centerBtn"
         title="Center on Me"
         onClick={() => setCenterMeTick((t) => t + 1)}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M12 2v3M12 19v3M2 12h3M19 12h3"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
         </svg>
       </button>
     </div>
 
-    <div
-      className={`pingCard${isMobile ? " pingCard--sheet" : ""}`}
-      ref={sheetRef}
-      style={heightPx ? { height: heightPx } : undefined}
-    >
-      {/* Drag handle — visible only on mobile via CSS */}
-      <div className="sheetHandle" ref={handleRef}>
-        <div className="sheetHandleBar" />
-      </div>
-
-      <div className="sectionTitle" style={{ textAlign: "center" }}>
-        Recent Pings
-      </div>
-
-      <div className="pingList">
-        {pins.length === 0 && <div className="smallText">No pings yet.</div>}
-
-        {pins.map((p, idx) => {
-          const dist =
-            userLoc ? haversineMeters(userLoc.lat, userLoc.lon, p.lat, p.lon) : null;
-
-          return (
-            <div
-              key={p.id}
-              className="pingItem"
-              onClick={() => setSelectedPingId(p.id)}
-              style={{
-                cursor: "pointer",
-                outline: selectedPingId === p.id ? "2px solid rgba(94,196,245,0.7)" : "none",
-              }}
-            >
-              <div className="pingRow">
-                <div className="pingName">#{idx + 1} {p.label ?? "Ping"}</div>
-                <div className="pingDist">{dist !== null ? fmtDist(dist) : "--"}</div>
-              </div>
-
-              <div className="pingMeta">
-                ({p.lat.toFixed(5)}, {p.lon.toFixed(5)})
-              </div>
-
-              <div className="pingMeta">
-                {p.bearingDeg !== undefined && p.rangeM !== undefined
-                  ? `Bearing ${p.bearingDeg.toFixed(0)}° • Range ${p.rangeM.toFixed(0)}m`
-                  : "—"}
-              </div>
-
-              <div className="pingMeta">
-                {new Date(p.createdAt).toLocaleTimeString()}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+    <div className="pingCard desktop-only">
+      <div className="sectionTitle" style={{ textAlign: "center" }}>Recent Pings</div>
+      {pingListJsx}
     </div>
+
+    {/* ── Mobile layout (hidden on desktop via CSS) ── */}
+    {isMobile && (
+      <>
+        <button
+          className="centerBtn mobile-center-btn"
+          onClick={() => setCenterMeTick((t) => t + 1)}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
+          </svg>
+        </button>
+        <MobileSheet activeTab={mobileTab} onTabChange={setMobileTab}>
+          {mobileTabContent()}
+        </MobileSheet>
+      </>
+    )}
   </div>
 );
 
