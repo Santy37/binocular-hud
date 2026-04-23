@@ -4,6 +4,7 @@ import BleStatus from "./components/BleStatus";
 import MobileSheet, { type TabId } from "./components/MobileSheet";
 import { bleManager } from "./lib/ble";
 import type { BleConnectionState } from "./lib/ble";
+import { fetchQnh } from "./lib/weatherApi";
 import { destinationPoint } from "./lib/geo";
 import { haversineMeters, fmtDist } from "./lib/distance";
 import { useBlePipeline } from "./hooks/useBlePipeline";
@@ -69,6 +70,37 @@ export default function App() {
     });
     return unsub;
   }, []);
+
+  /* Fetch current sea-level pressure (QNH) from weather API and send to ESP32
+   * so the barometer can compute absolute altitude. Re-fetches every 30 min.
+   * Only re-bound when BLE connection state or location availability changes,
+   * not on every GPS tick.
+   */
+  const hasLoc = userLoc != null || deviceLoc != null;
+  useEffect(() => {
+    if (!bleConnected || !hasLoc) return;
+
+    let cancelled = false;
+    const pushQnh = async () => {
+      const loc = userLoc ?? deviceLoc;
+      if (!loc) return;
+      const result = await fetchQnh(loc.lat, loc.lon);
+      if (cancelled || !result) return;
+      try {
+        await bleManager.writeCalibration(result.qnhHPa);
+      } catch (e) {
+        console.warn("[App] QNH write failed:", e);
+      }
+    };
+
+    pushQnh();
+    const iv = setInterval(pushQnh, 30 * 60 * 1000); // 30 min
+    return () => {
+      cancelled = true;
+      clearInterval(iv);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bleConnected, hasLoc]);
 
   /* When ESP32 has a GPS fix, use it as primary (blue dot).
    * Otherwise fall back to phone GPS (green dot).

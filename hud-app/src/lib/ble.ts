@@ -7,6 +7,7 @@ const SERVICE_UUID        = "4c494e4b-4855-4400-b000-000000000000"; // "LINK-HUD
 const TELEMETRY_CHAR_UUID = "4c494e4b-4855-4400-b000-000000000001"; // notify
 const PIN_CHAR_UUID       = "4c494e4b-4855-4400-b000-000000000002"; // notify
 const ACK_CHAR_UUID       = "4c494e4b-4855-4400-b000-000000000003"; // write
+const CAL_CHAR_UUID       = "4c494e4b-4855-4400-b000-000000000004"; // write (QNH calibration)
 
 export type BleConnectionState = "disconnected" | "connecting" | "connected" | "error";
 
@@ -36,6 +37,7 @@ export class BleManager {
   private telemetryChar: BluetoothRemoteGATTCharacteristic | null = null;
   private pinChar: BluetoothRemoteGATTCharacteristic | null = null;
   private ackChar: BluetoothRemoteGATTCharacteristic | null = null;
+  private calChar: BluetoothRemoteGATTCharacteristic | null = null;
 
   private _state: BleConnectionState = "disconnected";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,6 +96,14 @@ export class BleManager {
       // Get writable ACK characteristic
       this.ackChar = await this.service.getCharacteristic(ACK_CHAR_UUID);
 
+      // Get writable calibration characteristic (QNH sea-level pressure)
+      try {
+        this.calChar = await this.service.getCharacteristic(CAL_CHAR_UUID);
+      } catch (e) {
+        console.warn("[BLE] cal char not available (older firmware?):", e);
+        this.calChar = null;
+      }
+
       this.setState("connected");
     } catch (err) {
       console.error("[BLE] connect failed:", err);
@@ -120,6 +130,18 @@ export class BleManager {
     const encoder = new TextEncoder();
     const data = encoder.encode(JSON.stringify({ ack: true, pinId }));
     await this.ackChar.writeValue(data);
+  }
+
+  /** Send current sea-level pressure (QNH, hPa) for barometer altitude calibration. */
+  async writeCalibration(qnhHPa: number): Promise<void> {
+    if (!this.calChar) {
+      console.warn("[BLE] cal char not available");
+      return;
+    }
+    const encoder = new TextEncoder();
+    const data = encoder.encode(JSON.stringify({ qnhHPa }));
+    await this.calChar.writeValue(data);
+    console.log(`[BLE] sent QNH calibration: ${qnhHPa.toFixed(2)} hPa`);
   }
 
   // Event emitter
@@ -200,6 +222,7 @@ export class BleManager {
     this.telemetryChar = null;
     this.pinChar = null;
     this.ackChar = null;
+    this.calChar = null;
     this.service = null;
     this.server = null;
   }
