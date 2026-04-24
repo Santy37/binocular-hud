@@ -62,7 +62,44 @@ interface Props {
 export default function MobileSheet({ activeTab, onTabChange, children }: Props) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const [snapFrac, setSnapFrac] = useState(SNAP_HALF);
+  // When false, the sheet auto-fits to content (capped at SNAP_HALF).
+  // Becomes true after the user drags manually, so we respect their choice.
+  const userAdjustedRef = useRef(false);
+
+  const applyHeight = (frac: number) => {
+    sheetRef.current?.style.setProperty("--sheet-content-h", `${frac * 100}vh`);
+  };
+
+  // Auto-fit content height (capped at SNAP_HALF) whenever the content changes
+  // or the active tab changes — unless the user has manually dragged.
+  useEffect(() => {
+    const el = measureRef.current;
+    if (!el) return;
+
+    const fit = () => {
+      if (userAdjustedRef.current) return;
+      const vh = window.innerHeight;
+      const contentPx = el.scrollHeight;
+      const capPx = SNAP_HALF * vh;
+      const fracFromContent = Math.min(contentPx, capPx) / vh;
+      // Never smaller than a tiny minimum so the sheet is still grabbable
+      const frac = Math.max(0.08, fracFromContent);
+      setSnapFrac(frac);
+      applyHeight(frac);
+    };
+
+    fit();
+
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    window.addEventListener("resize", fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [activeTab, children]);
 
   // Touch drag
   useEffect(() => {
@@ -92,6 +129,7 @@ export default function MobileSheet({ activeTab, onTabChange, children }: Props)
       const contentEl = sheet.querySelector(".msheet-content") as HTMLElement | null;
       const current = contentEl ? contentEl.getBoundingClientRect().height / vh : snapFrac;
       const snapped = closest(current, SNAPS);
+      userAdjustedRef.current = true;
       setSnapFrac(snapped);
       sheet.style.transition = "none"; // let CSS transition on the inner el
       sheet.style.setProperty("--sheet-content-h", `${snapped * 100}vh`);
@@ -108,13 +146,10 @@ export default function MobileSheet({ activeTab, onTabChange, children }: Props)
     };
   }, [snapFrac]);
 
-  // Open to half when switching tabs if currently collapsed
+  // On tab switch: re-enter auto-fit mode so the sheet sizes to the new content.
   const handleTabClick = (id: TabId) => {
     onTabChange(id);
-    if (snapFrac <= SNAP_BAR) {
-      setSnapFrac(SNAP_HALF);
-      sheetRef.current?.style.setProperty("--sheet-content-h", `${SNAP_HALF * 100}vh`);
-    }
+    userAdjustedRef.current = false;
   };
 
   return (
@@ -130,7 +165,9 @@ export default function MobileSheet({ activeTab, onTabChange, children }: Props)
 
       {/* Scrollable content area */}
       <div className="msheet-content">
-        {children}
+        <div ref={measureRef} className="msheet-measure">
+          {children}
+        </div>
       </div>
 
       {/* Tab bar — always visible */}
