@@ -340,6 +340,16 @@
     right: 0;
     z-index: 20;
     pointer-events: auto;
+
+    /* Single unified panel so handle, content, and tabs sit flush */
+    background: rgba(8, 18, 35, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(42, 138, 240, 0.25);
+    border-left: 1px solid rgba(42, 138, 240, 0.25);
+    border-right: 1px solid rgba(42, 138, 240, 0.25);
+    border-radius: 16px 16px 0 0;
+    overflow: hidden;
   }
 
   /* Drag handle area */
@@ -349,12 +359,6 @@
     padding: 10px 0 6px;
     cursor: grab;
     touch-action: none;
-    background: var(--sheikah-panel);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-radius: 16px 16px 0 0;
-    border: 1px solid rgba(42, 138, 240, 0.25);
-    border-bottom: none;
   }
 
   .msheet-handle-bar {
@@ -371,13 +375,6 @@
     overflow-x: hidden;
     padding: 6px 16px 10px;
     transition: height 0.3s ease;
-
-    background: var(--sheikah-panel);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-
-    border-left: 1px solid rgba(42, 138, 240, 0.25);
-    border-right: 1px solid rgba(42, 138, 240, 0.25);
   }
 
   /* Tab bar — always visible at bottom */
@@ -386,11 +383,6 @@
     justify-content: space-around;
     align-items: center;
     padding: 6px 0 env(safe-area-inset-bottom, 8px);
-
-    background: rgba(8, 18, 35, 0.92);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-
     border-top: 1px solid rgba(42, 138, 240, 0.2);
   }
 
@@ -423,14 +415,15 @@
     opacity: 1;
   }
 
-  /* Center-me FAB */
+  /* Center-me FAB — top-left on mobile */
   .mobile-center-btn {
     display: grid;
     position: fixed;
-    bottom: calc(env(safe-area-inset-bottom, 8px) + 56px + 42vh + 12px);
-    right: 12px;
+    top: calc(env(safe-area-inset-top, 8px) + 12px);
+    left: 12px;
+    bottom: auto;
+    right: auto;
     z-index: 15;
-    transition: bottom 0.3s ease;
   }
 
   /* Tweak control card items for mobile sheet context */
