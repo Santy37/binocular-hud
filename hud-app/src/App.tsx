@@ -8,6 +8,8 @@ import { fetchQnh } from "./lib/weatherApi";
 import { destinationPoint } from "./lib/geo";
 import { haversineMeters, fmtDist } from "./lib/distance";
 import { useBlePipeline } from "./hooks/useBlePipeline";
+import { ingestPin } from "./lib/api";
+import type { PinPayload } from "./lib/payloadTypes";
 import "./App.css";
 import {
   getAllPins,
@@ -35,7 +37,7 @@ export default function App() {
     setPins((prev) => [pin, ...prev].slice(0, 6));
   }, []);
 
-  const { latestTelemetry, queueSize, manualFlush } = useBlePipeline({
+  const { latestTelemetry, queueSize, manualFlush, refreshQueue } = useBlePipeline({
     onNewPin: handleBlePin,
   });
 
@@ -171,11 +173,14 @@ const simulatePing = async () => {
 
   const bearingDeg = Math.random() * 360;
   const rangeM = 50 + Math.random() * 450;
+  const lidarQuality = Math.floor(200 + Math.random() * 55);
 
   const dst = destinationPoint(observer.lat, observer.lon, bearingDeg, rangeM);
+  const id = crypto.randomUUID();
 
+  // 1. Drop the marker on the map immediately
   await addPin({
-    id: crypto.randomUUID(),
+    id,
     lat: dst.lat,
     lon: dst.lon,
     label: "Ping",
@@ -183,8 +188,32 @@ const simulatePing = async () => {
     rangeM,
     observerLat: observer.lat,
     observerLon: observer.lon,
-    lidarQual: Math.floor(200 + Math.random() * 55), // fake quality for now
+    lidarQual: lidarQuality,
   });
+
+  // 2. Run the same ingest pipeline a real BLE pin would (validate → enqueue → POST → ACK).
+  //    When offline, the POST fails and the entry stays in the queue, so the
+  //    "unsent pins" badge appears.
+  const payload: PinPayload = {
+    id,
+    receivedAt: Date.now(),
+    observer: { lat: observer.lat, lon: observer.lon, altM: 0, accM: 5 },
+    target: { lat: dst.lat, lon: dst.lon },
+    aiming: { bearingDeg, pitchDeg: 0, rangeM, lidarQuality },
+    label: "Ping",
+    telemetry: latestTelemetry ?? {
+      ts: new Date().toISOString(),
+      imu: { heading: bearingDeg, pitch: 0, roll: 0 },
+      gnss: { lat: observer.lat, lon: observer.lon, altM: 0, accM: 5, fix: "3d", sats: 12 },
+      baro: { pressHPa: 1013.25, tempC: 25, altEstM: 0 },
+      lidar: { rangeM, quality: lidarQuality, valid: true },
+      battery: 100,
+      modules: { imu: "ok", gnss: "ok", baro: "ok", lidar: "ok", hud: "ok" },
+    },
+  };
+
+  await ingestPin(payload);
+  await refreshQueue();
 };
 
 

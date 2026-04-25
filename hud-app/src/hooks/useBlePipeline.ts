@@ -114,5 +114,10 @@ export function useBlePipeline({ onNewPin, maxPins = 6 }: UseBlePipelineOpts) {
     return delivered;
   }, []);
 
-  return { latestTelemetry, queueSize, manualFlush };
+  /** Refresh the queue size badge without attempting any uploads. */
+  const refreshQueue = useCallback(async () => {
+    setQueueSize(await pendingCount());
+  }, []);
+
+  return { latestTelemetry, queueSize, manualFlush, refreshQueue };
 }
