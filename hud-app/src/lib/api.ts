@@ -12,9 +12,9 @@ import {
 } from "./offlineQueue";
 import { bleManager } from "./ble";
 
-/**
- * Base URL for the pin-ingest server.
- * In production this comes from env; for local dev it can be overridden.
+/*
+ Base URL for the pin-ingest server.
+ In production this comes from env; for local dev it can be overridden.
  */
 const SERVER_BASE =
   import.meta.env.VITE_API_BASE ?? "https://link-hud-api.example.com";
@@ -23,12 +23,12 @@ const PIN_ENDPOINT = `${SERVER_BASE}/api/pins`;
 
 // Public API
 
-/**
- * Full pipeline for a pin payload that arrived over BLE:
- *   validate → enqueue → POST → ACK back to ESP32
- *
- * If the POST fails (offline, 5xx, timeout), the payload stays in the
- * local queue and `flushQueue()` will retry later.
+/*
+ Full pipeline for a pin payload that arrived over BLE:
+   validate → enqueue → POST → ACK back to ESP32
+ 
+ If the POST fails (offline, 5xx, timeout), the payload stays in the
+ local queue and `flushQueue()` will retry later.
  */
 export async function ingestPin(payload: PinPayload): Promise<boolean> {
   // 1. Client-side validation
@@ -45,9 +45,9 @@ export async function ingestPin(payload: PinPayload): Promise<boolean> {
   return attemptPost(payload);
 }
 
-/**
- * Retry all pending payloads in the queue.
- * Call this on a timer, on "online" event, or after reconnecting.
+/*
+ Retry all pending payloads in the queue.
+ Call this on a timer, on "online" event, or after reconnecting.
  */
 export async function flushQueue(): Promise<number> {
   const pending = await getPending();
@@ -63,8 +63,8 @@ export async function flushQueue(): Promise<number> {
   return delivered;
 }
 
-/**
- * Returns the number of payloads still waiting to be sent.
+/*
+ Returns the number of payloads still waiting to be sent.
  */
 export async function pendingCount(): Promise<number> {
   return (await getPending()).length;

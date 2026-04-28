@@ -1,8 +1,9 @@
 // Push / local notification helpers
 
-/**
- * Request Notification permission if not already granted.
- * Returns true if permission is "granted".
+/* Ask the browser for Notification permission if we don't already have it.
+ Resolves true only when the final state is "granted" — "denied" is sticky
+ on most browsers (no second-chance prompt), so we bail early in that case
+ instead of triggering a no-op requestPermission() call.
  */
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!("Notification" in window)) return false;
@@ -13,10 +14,11 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return result === "granted";
 }
 
-/**
- * Show a local notification (no server push needed).
- *
- * Falls back to console.log when notifications are blocked.
+/* Fire a local notification — no server push, all client-side.
+ On Android the plain `new Notification()` constructor is blocked inside
+ PWAs, so we route through the SW registration when one's available and
+ only fall back to the constructor on desktop. If permission is missing
+ we just log to console so dev/debug still sees the event.
  */
 export function showNotification(
   title: string,
@@ -43,7 +45,7 @@ export function showNotification(
   }
 }
 
-/** Notify about a new pin that arrived from the binoculars. */
+// Notify about a new pin that just arrived from the binoculars over BLE.
 export function notifyNewPin(label: string, lat: number, lon: number) {
   showNotification(
     "New Waypoint Received",
@@ -52,7 +54,8 @@ export function notifyNewPin(label: string, lat: number, lon: number) {
   );
 }
 
-/** Warn the user about a degraded or failed module. */
+// Warn the user when a sensor module flips to degraded/failed so they
+// know readings might be stale or off before they trust a waypoint.
 export function notifyModuleWarning(module: string, status: string) {
   showNotification(
     "Module Warning",

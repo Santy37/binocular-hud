@@ -1,8 +1,8 @@
 /* Weather API helper — fetches current sea-level pressure (QNH) for a location.
- *
- * Uses Open-Meteo (https://open-meteo.com) — free, no API key, no rate limit for
- * reasonable use.  Returns the sea-level pressure (hPa, a.k.a. QNH) so the
- * ESP32 can calibrate its barometer for true MSL altitude.
+ 
+ Uses Open-Meteo (https://open-meteo.com) — free, no API key, no rate limit for
+ reasonable use.  Returns the sea-level pressure (hPa, a.k.a. QNH) so the
+ ESP32 can calibrate its barometer for true MSL altitude.
  */
 
 export interface QnhResult {
@@ -12,9 +12,9 @@ export interface QnhResult {
   lon: number;
 }
 
-/**
- * Fetch current sea-level pressure for the given coordinates.
- * Returns null on network/parse failure.
+/*
+ Fetch current sea-level pressure for the given coordinates.
+ Returns null on network/parse failure.
  */
 export async function fetchQnh(lat: number, lon: number): Promise<QnhResult | null> {
   try {

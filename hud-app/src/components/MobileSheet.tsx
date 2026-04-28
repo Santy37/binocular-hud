@@ -1,8 +1,8 @@
-/* ── MobileSheet: Find My-style bottom sheet with tab bar ─────────── */
+// ── MobileSheet: Find My-style bottom sheet with tab bar ───────────
 
 import { useRef, useEffect, useState, type ReactNode } from "react";
 
-/* ── Snap points (fraction of vh, measured from bottom) ── */
+// ── Snap points (fraction of vh, measured from bottom) ──
 const SNAP_BAR  = 0;     // just the tab bar
 const SNAP_HALF = 0.42;
 const SNAP_FULL = 0.82;

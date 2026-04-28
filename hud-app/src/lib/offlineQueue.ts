@@ -8,14 +8,14 @@ const STORE = "pendingPins";
 const DB_VERSION = 1;
 
 export interface QueueEntry {
-  /** Same id as the PinPayload. */
+  // Same id as the PinPayload.
   id: string;
   payload: PinPayload;
-  /** Number of POST attempts so far. */
+  // Number of POST attempts so far.
   attempts: number;
-  /** Epoch-ms of last attempt (0 = never tried). */
+  // Epoch-ms of last attempt (0 = never tried).
   lastAttempt: number;
-  /** "pending" | "sending" | "acked" */
+  // "pending" | "sending" | "acked"
   status: "pending" | "sending" | "acked";
 }
 
@@ -33,7 +33,7 @@ async function db() {
   return _db;
 }
 
-/** Enqueue a new payload (called when BLE delivers a pin). */
+// Enqueue a new payload (called when BLE delivers a pin).
 export async function enqueue(payload: PinPayload): Promise<void> {
   const d = await db();
   const entry: QueueEntry = {
@@ -46,20 +46,20 @@ export async function enqueue(payload: PinPayload): Promise<void> {
   await d.put(STORE, entry);
 }
 
-/** Get all entries that still need sending. */
+// Get all entries that still need sending.
 export async function getPending(): Promise<QueueEntry[]> {
   const d = await db();
   const all: QueueEntry[] = await d.getAll(STORE);
   return all.filter((e) => e.status !== "acked");
 }
 
-/** Get every entry (including acked) for debugging / UI. */
+// Get every entry (including acked) for debugging / UI.
 export async function getAll(): Promise<QueueEntry[]> {
   const d = await db();
   return d.getAll(STORE);
 }
 
-/** Mark an entry as currently being sent. */
+// Mark an entry as currently being sent.
 export async function markSending(id: string): Promise<void> {
   const d = await db();
   const entry: QueueEntry | undefined = await d.get(STORE, id);
@@ -70,7 +70,7 @@ export async function markSending(id: string): Promise<void> {
   await d.put(STORE, entry);
 }
 
-/** Mark delivered — we got a server 200 AND sent the BLE ACK. */
+// Mark delivered — we got a server 200 AND sent the BLE ACK.
 export async function markAcked(id: string): Promise<void> {
   const d = await db();
   const entry: QueueEntry | undefined = await d.get(STORE, id);
@@ -79,7 +79,7 @@ export async function markAcked(id: string): Promise<void> {
   await d.put(STORE, entry);
 }
 
-/** Reset a failed entry back to pending. */
+// Reset a failed entry back to pending.
 export async function markPending(id: string): Promise<void> {
   const d = await db();
   const entry: QueueEntry | undefined = await d.get(STORE, id);
@@ -88,7 +88,7 @@ export async function markPending(id: string): Promise<void> {
   await d.put(STORE, entry);
 }
 
-/** Remove delivered entries older than `maxAgeMs` (default 24h). */
+// Remove delivered entries older than `maxAgeMs` (default 24h).
 export async function pruneAcked(maxAgeMs = 86_400_000): Promise<void> {
   const d = await db();
   const all: QueueEntry[] = await d.getAll(STORE);
@@ -100,7 +100,7 @@ export async function pruneAcked(maxAgeMs = 86_400_000): Promise<void> {
   }
 }
 
-/** Nuke everything. */
+// Nuke everything.
 export async function clearQueue(): Promise<void> {
   const d = await db();
   await d.clear(STORE);

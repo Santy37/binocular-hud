@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 
 const MOBILE_BREAKPOINT = 700;
 
-/** Snap points as fractions of viewport height (from bottom). */
+// Snap points as fractions of viewport height (from bottom).
 const SNAP_PEEK = 0.055; // handle + title peeking
 const SNAP_HALF = 0.45;
 const SNAP_FULL = 0.85;
@@ -12,10 +12,10 @@ function closest(val: number, pts: number[]) {
   return pts.reduce((a, b) => (Math.abs(b - val) < Math.abs(a - val) ? b : a));
 }
 
-/**
- * Enables mobile-only bottom-sheet drag on a container ref.
- * Returns { sheetRef, handleRef, heightPx, isMobile }.
- * On desktop (>700 px) this hook is inert.
+/*
+ Enables mobile-only bottom-sheet drag on a container ref.
+ Returns { sheetRef, handleRef, heightPx, isMobile }.
+ On desktop (>700 px) this hook is inert.
  */
 export function useBottomSheet() {
   const sheetRef = useRef<HTMLDivElement>(null);

@@ -21,13 +21,13 @@ export type BleEventMap = {
 
 type Listener<K extends keyof BleEventMap> = (data: BleEventMap[K]) => void;
 
-/**
- * Singleton-style BLE manager.
- *
- * Usage:
- *   const ble = new BleManager();
- *   ble.on("pinPayload", (pin) => { ... });
- *   await ble.connect();
+/*
+ Singleton-style BLE manager.
+ 
+ Usage:
+   const ble = new BleManager();
+   ble.on("pinPayload", (pin) => { ... });
+   await ble.connect();
  */
 export class BleManager {
   private device: BluetoothDevice | null = null;
@@ -49,12 +49,12 @@ export class BleManager {
     return this._state;
   }
 
-  /** Returns true if Web Bluetooth is available (Chrome/Edge on Android). */
+  // Returns true if Web Bluetooth is available (Chrome/Edge on Android).
   static isSupported(): boolean {
     return typeof navigator !== "undefined" && "bluetooth" in navigator;
   }
 
-  /** Prompt the user to pick the ESP32, then subscribe to characteristics. */
+  // Prompt the user to pick the ESP32, then subscribe to characteristics.
   async connect(): Promise<void> {
     if (!BleManager.isSupported()) {
       this.setState("error");
@@ -112,7 +112,7 @@ export class BleManager {
     }
   }
 
-  /** Gracefully disconnect. */
+  // Gracefully disconnect.
   disconnect(): void {
     if (this.server?.connected) {
       this.server.disconnect();
@@ -121,7 +121,7 @@ export class BleManager {
     this.setState("disconnected");
   }
 
-  /** Send ACK back to ESP32 so it can remove the pin from its local queue. */
+  // Send ACK back to ESP32 so it can remove the pin from its local queue.
   async sendAck(pinId: string): Promise<void> {
     if (!this.ackChar) {
       console.warn("[BLE] ACK char not available");
@@ -132,7 +132,7 @@ export class BleManager {
     await this.ackChar.writeValue(data);
   }
 
-  /** Send current sea-level pressure (QNH, hPa) for barometer altitude calibration. */
+  // Send current sea-level pressure (QNH, hPa) for barometer altitude calibration.
   async writeCalibration(qnhHPa: number): Promise<void> {
     if (!this.calChar) {
       console.warn("[BLE] cal char not available");
@@ -173,7 +173,7 @@ export class BleManager {
     this.setState("disconnected");
   };
 
-  /** Decode a DataView into a UTF-8 string → parse JSON. */
+  // Decode a DataView into a UTF-8 string → parse JSON.
   private decode(dv: DataView): unknown {
     const decoder = new TextDecoder();
     return JSON.parse(decoder.decode(dv.buffer));
@@ -228,5 +228,5 @@ export class BleManager {
   }
 }
 
-/** Singleton instance for the whole app. */
+// Singleton instance for the whole app.
 export const bleManager = new BleManager();

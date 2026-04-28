@@ -74,9 +74,9 @@ export default function App() {
   }, []);
 
   /* Fetch current sea-level pressure (QNH) from weather API and send to ESP32
-   * so the barometer can compute absolute altitude. Re-fetches every 30 min.
-   * Only re-bound when BLE connection state or location availability changes,
-   * not on every GPS tick.
+   so the barometer can compute absolute altitude. Re-fetches every 30 min.
+   Only re-bound when BLE connection state or location availability changes,
+   not on every GPS tick.
    */
   const hasLoc = userLoc != null || deviceLoc != null;
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function App() {
   }, [bleConnected, hasLoc]);
 
   /* When ESP32 has a GPS fix, use it as primary (blue dot).
-   * Otherwise fall back to phone GPS (green dot).
+   Otherwise fall back to phone GPS (green dot).
    */
   useEffect(() => {
     if (usingEsp32) {
@@ -217,7 +217,7 @@ const simulatePing = async () => {
 };
 
 
-  /* ── Shared UI fragments ── */
+  // ── Shared UI fragments ──
   const locationText = usingEsp32
     ? `ESP32: ${binocularLoc!.lat.toFixed(5)}, ${binocularLoc!.lon.toFixed(5)}`
     : userLoc
@@ -256,7 +256,7 @@ const simulatePing = async () => {
     </div>
   );
 
-  /* ── Mobile tab content ── */
+  // ── Mobile tab content ──
   const mobileTabContent = () => {
     switch (mobileTab) {
       case "pings":

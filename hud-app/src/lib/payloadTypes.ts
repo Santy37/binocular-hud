@@ -1,8 +1,8 @@
 // Shared types for ESP32 ↔ Phone ↔ Server payloads
 
-/** Raw telemetry snapshot the ESP32 streams via BLE notify. */
+// Raw telemetry snapshot the ESP32 streams via BLE notify.
 export interface TelemetrySnapshot {
-  /** ISO-8601 timestamp on the ESP32 (may drift — phone re-stamps). */
+  // ISO-8601 timestamp on the ESP32 (may drift — phone re-stamps).
   ts: string;
 
   // IMU
@@ -41,7 +41,7 @@ export interface TelemetrySnapshot {
   modules: ModuleStatus;
 }
 
-/** Per-module health flags advertised in telemetry. */
+// Per-module health flags advertised in telemetry.
 export interface ModuleStatus {
   imu: "ok" | "degraded" | "fail";
   gnss: "ok" | "degraded" | "fail";
@@ -50,18 +50,18 @@ export interface ModuleStatus {
   hud: "ok" | "degraded" | "fail";
 }
 
-/**
- * Pin payload the ESP32 sends when the user presses the "ping" button.
- * This is the JSON blob that travels:  ESP32 → Phone → Server.
+/*
+ Pin payload the ESP32 sends when the user presses the "ping" button.
+ This is the JSON blob that travels:  ESP32 → Phone → Server.
  */
 export interface PinPayload {
-  /** UUID generated on the ESP32 so both sides can track delivery. */
+  // UUID generated on the ESP32 so both sides can track delivery.
   id: string;
 
-  /** Epoch-ms stamped on the phone when the payload arrives. */
+  // Epoch-ms stamped on the phone when the payload arrives.
   receivedAt: number;
 
-  /** Observer position at moment of ping. */
+  // Observer position at moment of ping.
   observer: {
     lat: number;
     lon: number;
@@ -69,14 +69,14 @@ export interface PinPayload {
     accM: number;
   };
 
-  /** Computed target waypoint. */
+  // Computed target waypoint.
   target: {
     lat: number;
     lon: number;
     altEstM?: number;
   };
 
-  /** Aiming data used for the computation. */
+  // Aiming data used for the computation.
   aiming: {
     bearingDeg: number;
     pitchDeg: number;
@@ -84,10 +84,10 @@ export interface PinPayload {
     lidarQuality: number;
   };
 
-  /** Optional label (e.g. "waypoint", "poi"). */
+  // Optional label (e.g. "waypoint", "poi").
   label?: string;
 
-  /** Full telemetry snapshot embedded for server-side validation. */
+  // Full telemetry snapshot embedded for server-side validation.
   telemetry: TelemetrySnapshot;
 }
 
@@ -101,7 +101,7 @@ export interface ServerPinResponse {
 
 // Payload validation
 
-/** Quick client-side bounds check before POSTing. */
+// Quick client-side bounds check before POSTing.
 export function validatePinPayload(p: PinPayload): string[] {
   const errors: string[] = [];
 

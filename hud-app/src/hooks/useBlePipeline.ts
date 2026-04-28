@@ -8,19 +8,19 @@ import type { PinPayload, TelemetrySnapshot } from "../lib/payloadTypes";
 import { addPin as persistPin, pruneOldPins, type Pin } from "../lib/pinsStore";
 
 export interface UseBlePipelineOpts {
-  /** Callback to push a new Pin into React state. */
+  // Callback to push a new Pin into React state.
   onNewPin: (pin: Pin) => void;
-  /** Max pins to keep in DB. */
+  // Max pins to keep in DB.
   maxPins?: number;
 }
 
-/**
- * Hook that:
- *  1. Listens for BLE pin payloads
- *  2. Converts them to local Pin format + persists
- *  3. Sends through the ingest pipeline (validate → queue → POST → ACK)
- *  4. Shows notifications
- *  5. Periodically flushes the offline queue
+/*
+ Hook that:
+  1. Listens for BLE pin payloads
+  2. Converts them to local Pin format + persists
+  3. Sends through the ingest pipeline (validate → queue → POST → ACK)
+  4. Shows notifications
+  5. Periodically flushes the offline queue
  */
 export function useBlePipeline({ onNewPin, maxPins = 6 }: UseBlePipelineOpts) {
   const [latestTelemetry, setLatestTelemetry] = useState<TelemetrySnapshot | null>(null);
@@ -107,14 +107,14 @@ export function useBlePipeline({ onNewPin, maxPins = 6 }: UseBlePipelineOpts) {
     return () => window.removeEventListener("online", handler);
   }, []);
 
-  /** Manual flush trigger for the UI. */
+  // Manual flush trigger for the UI.
   const manualFlush = useCallback(async () => {
     const delivered = await flushQueue();
     setQueueSize(await pendingCount());
     return delivered;
   }, []);
 
-  /** Refresh the queue size badge without attempting any uploads. */
+  // Refresh the queue size badge without attempting any uploads.
   const refreshQueue = useCallback(async () => {
     setQueueSize(await pendingCount());
   }, []);

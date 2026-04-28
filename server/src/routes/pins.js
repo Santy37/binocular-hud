@@ -4,7 +4,7 @@ import db from "../db/pool.js";
 
 const router = Router();
 
-/* Prepared statements (faster than re-parsing each time) */
+// Prepared statements (faster than re-parsing each time)
 const insertPin = db.prepare(`
   INSERT OR IGNORE INTO pins (
     id, received_at,
