@@ -87,8 +87,18 @@ export interface PinPayload {
   // Optional label (e.g. "waypoint", "poi").
   label?: string;
 
-  // Full telemetry snapshot embedded for server-side validation.
-  telemetry: TelemetrySnapshot;
+  // Optional slim module-health summary from the moment the ping fired.
+  // Firmware sends this in place of the (oversized) full telemetry blob.
+  modules?: {
+    imu: "ok" | "degraded" | "fail";
+    gnss: "ok" | "degraded" | "fail";
+    baro: "ok" | "degraded" | "fail";
+    lidar: "ok" | "degraded" | "fail";
+  };
+
+  // Full telemetry snapshot — optional, server stores it if present.
+  // Currently omitted by firmware to stay under the BLE 600-byte cap.
+  telemetry?: TelemetrySnapshot;
 }
 
 // Server response

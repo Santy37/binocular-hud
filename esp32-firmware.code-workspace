@@ -5,6 +5,9 @@
 		},
 		{
 			"path": ".."
+		},
+		{
+			"path": "../../../Users/Santy/OneDrive/Documents/PlatformIO/Projects/Lidar Test"
 		}
 	],
 	"settings": {}
