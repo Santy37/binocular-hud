@@ -5,17 +5,12 @@ import MobileSheet, { type TabId } from "./components/MobileSheet";
 import { bleManager } from "./lib/ble";
 import type { BleConnectionState } from "./lib/ble";
 import { fetchQnh } from "./lib/weatherApi";
-import { destinationPoint } from "./lib/geo";
 import { haversineMeters, fmtDist } from "./lib/distance";
 import { useBlePipeline } from "./hooks/useBlePipeline";
-import { ingestPin } from "./lib/api";
-import type { PinPayload } from "./lib/payloadTypes";
 import "./App.css";
 import {
   getAllPins,
-  addPin as persistPin,
   clearPins as clearPinsDb,
-  pruneOldPins,
   type Pin,
 } from "./lib/pinsStore";
 
@@ -37,7 +32,7 @@ export default function App() {
     setPins((prev) => [pin, ...prev].slice(0, 6));
   }, []);
 
-  const { latestTelemetry, queueSize, manualFlush, refreshQueue } = useBlePipeline({
+  const { latestTelemetry, queueSize, manualFlush } = useBlePipeline({
     onNewPin: handleBlePin,
   });
 
@@ -151,70 +146,10 @@ export default function App() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  // helper: add pin + persist to IndexedDB
-  async function addPin(pin: Omit<Pin, "createdAt">) {
-    const full: Pin = { ...pin, createdAt: Date.now() };
-
-    setPins((prev) => [full, ...prev].slice(0, 6)); // ✅ limit to 6
-    await persistPin(full);
-    await pruneOldPins(6); // ✅ keep DB trimmed too
-  }
-
   async function clearAllPins() {
     setPins([]);
     await clearPinsDb();
   }
-
-const simulatePing = async () => {
-  // use your current location if available, otherwise a default
-  const observer = userLoc
-    ? { lat: userLoc.lat, lon: userLoc.lon }
-    : { lat: 28.6012, lon: -81.2005 };
-
-  const bearingDeg = Math.random() * 360;
-  const rangeM = 50 + Math.random() * 450;
-  const lidarQuality = Math.floor(200 + Math.random() * 55);
-
-  const dst = destinationPoint(observer.lat, observer.lon, bearingDeg, rangeM);
-  const id = crypto.randomUUID();
-
-  // 1. Drop the marker on the map immediately
-  await addPin({
-    id,
-    lat: dst.lat,
-    lon: dst.lon,
-    label: "Ping",
-    bearingDeg,
-    rangeM,
-    observerLat: observer.lat,
-    observerLon: observer.lon,
-    lidarQual: lidarQuality,
-  });
-
-  // 2. Run the same ingest pipeline a real BLE pin would (validate → enqueue → POST → ACK).
-  //    When offline, the POST fails and the entry stays in the queue, so the
-  //    "unsent pins" badge appears.
-  const payload: PinPayload = {
-    id,
-    receivedAt: Date.now(),
-    observer: { lat: observer.lat, lon: observer.lon, altM: 0, accM: 5 },
-    target: { lat: dst.lat, lon: dst.lon },
-    aiming: { bearingDeg, pitchDeg: 0, rangeM, lidarQuality },
-    label: "Ping",
-    telemetry: latestTelemetry ?? {
-      ts: new Date().toISOString(),
-      imu: { heading: bearingDeg, pitch: 0, roll: 0 },
-      gnss: { lat: observer.lat, lon: observer.lon, altM: 0, accM: 5, fix: "3d", sats: 12 },
-      baro: { pressHPa: 1013.25, tempC: 25, altEstM: 0 },
-      lidar: { rangeM, quality: lidarQuality, valid: true },
-      battery: 100,
-      modules: { imu: "ok", gnss: "ok", baro: "ok", lidar: "ok", hud: "ok" },
-    },
-  };
-
-  await ingestPin(payload);
-  await refreshQueue();
-};
 
 
   // ── Shared UI fragments ──
@@ -272,20 +207,15 @@ const simulatePing = async () => {
         return (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "4px 0" }}>
             <div className="smallText">{locationText}</div>
-            <div style={{ display: "flex", gap: 8, width: "100%" }}>
-              <select
-                value={basemap}
-                onChange={(e) => setBasemap(e.target.value as "streets" | "satellite")}
-                className="select"
-                style={{ flex: 1 }}
-              >
-                <option value="satellite">Satellite</option>
-                <option value="streets">Streets</option>
-              </select>
-              <button onClick={simulatePing} className="secondaryBtn" style={{ flex: 1, padding: "8px 0" }}>
-                Sim Ping
-              </button>
-            </div>
+            <select
+              value={basemap}
+              onChange={(e) => setBasemap(e.target.value as "streets" | "satellite")}
+              className="select"
+              style={{ width: "100%" }}
+            >
+              <option value="satellite">Satellite</option>
+              <option value="streets">Streets</option>
+            </select>
             <button onClick={clearAllPins} className="secondaryBtn" style={{ width: "100%" }}>
               Clear Pins ({pins.length})
             </button>
@@ -318,20 +248,15 @@ const simulatePing = async () => {
       <div className="controlCard">
         <div className="title">LINK Map</div>
         <BleStatus />
-        <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 220 }}>
-          <select
-            value={basemap}
-            onChange={(e) => setBasemap(e.target.value as "streets" | "satellite")}
-            className="select"
-            style={{ flex: 1 }}
-          >
-            <option value="satellite">Satellite</option>
-            <option value="streets">Streets</option>
-          </select>
-          <button onClick={simulatePing} className="secondaryBtn" style={{ flex: 1, padding: "8px 0" }}>
-            Sim Ping
-          </button>
-        </div>
+        <select
+          value={basemap}
+          onChange={(e) => setBasemap(e.target.value as "streets" | "satellite")}
+          className="select"
+          style={{ width: "100%", maxWidth: 220 }}
+        >
+          <option value="satellite">Satellite</option>
+          <option value="streets">Streets</option>
+        </select>
         <div className="smallText">{locationText}</div>
         <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 220 }}>
           <button onClick={clearAllPins} className="secondaryBtn" style={{ flex: 1 }}>
