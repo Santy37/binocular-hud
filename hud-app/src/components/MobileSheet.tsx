@@ -67,6 +67,14 @@ export default function MobileSheet({ activeTab, onTabChange, children }: Props)
   // When false, the sheet auto-fits to content (capped at SNAP_HALF).
   // Becomes true after the user drags manually, so we respect their choice.
   const userAdjustedRef = useRef(false);
+  // Latest snapFrac, readable synchronously inside touch handlers.
+  const snapFracRef = useRef(SNAP_HALF);
+  // True while a drag is in progress, so auto-fit doesn't fight it.
+  const draggingRef = useRef(false);
+
+  useEffect(() => {
+    snapFracRef.current = snapFrac;
+  }, [snapFrac]);
 
   const applyHeight = (frac: number) => {
     sheetRef.current?.style.setProperty("--sheet-content-h", `${frac * 100}vh`);
@@ -79,7 +87,7 @@ export default function MobileSheet({ activeTab, onTabChange, children }: Props)
     if (!el) return;
 
     const fit = () => {
-      if (userAdjustedRef.current) return;
+      if (userAdjustedRef.current || draggingRef.current) return;
       const vh = window.innerHeight;
       const contentPx = el.scrollHeight;
       const capPx = SNAP_HALF * vh;
@@ -101,50 +109,72 @@ export default function MobileSheet({ activeTab, onTabChange, children }: Props)
     };
   }, [activeTab, children]);
 
-  // Touch drag
+  // Touch drag. Attached once — reads live state through refs so we never
+  // tear down / re-add listeners (which would interrupt an in-flight drag).
   useEffect(() => {
     const handle = handleRef.current;
     const sheet = sheetRef.current;
     if (!handle || !sheet) return;
+    const contentEl = sheet.querySelector(".msheet-content") as HTMLElement | null;
 
     let startY = 0;
-    let startFrac = snapFrac;
+    let startFrac = snapFracRef.current;
+    let targetFrac = startFrac; // where the finger currently is
+    let rafId = 0;
+
+    const paint = () => {
+      rafId = 0;
+      sheet.style.setProperty("--sheet-content-h", `${targetFrac * 100}vh`);
+    };
 
     const onTouchStart = (e: TouchEvent) => {
       startY = e.touches[0].clientY;
-      startFrac = snapFrac;
-      sheet.style.transition = "none";
+      startFrac = snapFracRef.current;
+      targetFrac = startFrac;
+      draggingRef.current = true;
+      // Kill the height transition so the sheet tracks the finger 1:1.
+      if (contentEl) contentEl.style.transition = "none";
     };
 
     const onTouchMove = (e: TouchEvent) => {
+      if (!draggingRef.current) return;
       const vh = window.innerHeight;
-      const dy = startY - e.touches[0].clientY;
-      const newFrac = Math.min(SNAP_FULL, Math.max(SNAP_BAR, startFrac + dy / vh));
-      sheet.style.setProperty("--sheet-content-h", `${newFrac * 100}vh`);
-      e.preventDefault();
+      const dy = startY - e.touches[0].clientY; // positive = dragging up
+      targetFrac = Math.min(SNAP_FULL, Math.max(SNAP_BAR, startFrac + dy / vh));
+      // Coalesce updates to one per frame to avoid layout thrash.
+      if (!rafId) rafId = requestAnimationFrame(paint);
+      e.preventDefault(); // prevent scroll-through
     };
 
     const onTouchEnd = () => {
-      const vh = window.innerHeight;
-      const contentEl = sheet.querySelector(".msheet-content") as HTMLElement | null;
-      const current = contentEl ? contentEl.getBoundingClientRect().height / vh : snapFrac;
-      const snapped = closest(current, SNAPS);
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+      // Snap to where the finger actually released — no mid-animation guessing.
+      const snapped = closest(targetFrac, SNAPS);
       userAdjustedRef.current = true;
+      snapFracRef.current = snapped;
       setSnapFrac(snapped);
-      sheet.style.transition = "none"; // let CSS transition on the inner el
+      // Restore the CSS transition so it eases into the snap point.
+      if (contentEl) contentEl.style.transition = "";
       sheet.style.setProperty("--sheet-content-h", `${snapped * 100}vh`);
     };
 
     handle.addEventListener("touchstart", onTouchStart, { passive: false });
     handle.addEventListener("touchmove", onTouchMove, { passive: false });
     handle.addEventListener("touchend", onTouchEnd);
+    handle.addEventListener("touchcancel", onTouchEnd);
 
     return () => {
       handle.removeEventListener("touchstart", onTouchStart);
       handle.removeEventListener("touchmove", onTouchMove);
       handle.removeEventListener("touchend", onTouchEnd);
+      handle.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, [snapFrac]);
+  }, []);
 
   // On tab switch: re-enter auto-fit mode so the sheet sizes to the new content.
   const handleTabClick = (id: TabId) => {

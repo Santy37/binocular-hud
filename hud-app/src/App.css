@@ -352,20 +352,27 @@
     overflow: hidden;
   }
 
-  /* Drag handle area */
+  /* Drag handle area — generous hit target so it's easy to grab */
   .msheet-handle {
     display: flex;
+    align-items: center;
     justify-content: center;
-    padding: 10px 0 6px;
+    min-height: 44px;
+    padding: 12px 0 10px;
     cursor: grab;
     touch-action: none;
+    /* Don't let the browser hijack the gesture as a page scroll/refresh */
+    overscroll-behavior: contain;
+  }
+  .msheet-handle:active {
+    cursor: grabbing;
   }
 
   .msheet-handle-bar {
-    width: 36px;
-    height: 4px;
-    border-radius: 2px;
-    background: rgba(94, 196, 245, 0.4);
+    width: 44px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(94, 196, 245, 0.5);
   }
 
   /* Scrollable content area */
