@@ -1,1 +1,20 @@
+# Dependencies
 node_modules/
+**/node_modules/
+
+# Frontend build
+hud-app/dist/
+
+# Environment files
+server/.env
+hud-app/.env.local
+hud-app/.env.*.local
+
+# SQLite production database
+server/linkhud.db
+server/linkhud.db-wal
+server/linkhud.db-shm
+
+# Logs
+*.log
+npm-debug.log*

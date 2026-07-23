@@ -200,6 +200,12 @@ From PowerShell on your Windows PC:
 
 --- Step 12: Enable HTTPS with Tailscale Funnel ---
 
+  *** SUPERSEDED (July 2026): Public HTTPS is now served by Cloudflare  ***
+  *** Tunnel at https://linkhud.app, NOT Tailscale Funnel. Do NOT       ***
+  *** re-enable Funnel — it and cloudflared both proxy :4000 and will   ***
+  *** conflict. Tailscale is kept for private admin/SSH only. The steps ***
+  *** below are retained for historical reference.                      ***
+
   *** Web Bluetooth ONLY works on HTTPS. This step is required. ***
 
   First, enable Funnel on your Tailscale account:
@@ -282,14 +288,16 @@ From PowerShell on your Windows PC:
     git push
 
   Pull latest code on the server + rebuild:
-    cd ~/binocular-hud
-    git pull
-    cd ~/binocular-hud/hud-app
-    npm run build
-    pm2 restart link-hud
+    (The && chaining is important: if "git pull" fails — e.g. a DNS
+     hiccup — the build and restart are SKIPPED so you never ship
+     stale code. If pull fails, fix the error before continuing.)
+    cd ~/binocular-hud && git pull && cd hud-app && npm run build && pm2 restart link-hud
+
+    Confirm the new build actually shipped (not a stale cached bundle):
+      curl -sI https://linkhud.app | grep -i last-modified   # should be today
 
   See your public URL:
-      sudo tailscale funnel status
+      https://linkhud.app   (served via Cloudflare Tunnel -> cloudflared -> Express :4000)
 
   Stop the server:
     pm2 stop link-hud
